@@ -7,7 +7,6 @@ export const saveTransactions = async (transactions: any[]) => {
     const result = await prisma.transaction.createMany({ data: transactions });
     return result;
   } catch (error) {
-    console.error("Error saving transactions:", error);
     throw error;
   }
 };
