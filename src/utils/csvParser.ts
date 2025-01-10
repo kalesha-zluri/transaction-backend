@@ -1,6 +1,5 @@
 import { Readable } from 'stream';
 import csvParser from 'csv-parser';
-import { parse } from 'date-fns';
 
 const parseCSV = async (buffer: Buffer): Promise<any[]> => {
   const results: any[] = [];
@@ -13,7 +12,9 @@ const parseCSV = async (buffer: Buffer): Promise<any[]> => {
     Readable.from(csvString)
       .pipe(csvParser())
       .on("data", (data) => {
-        results.push(data);
+        if (data.Date && data.Description) {
+          results.push(data);
+        }
       })
       .on("end", () => resolve(results))
       .on("error", (error) => reject(error));
