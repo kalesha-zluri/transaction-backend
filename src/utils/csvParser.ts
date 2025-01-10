@@ -12,11 +12,15 @@ const parseCSV = async (buffer: Buffer): Promise<any[]> => {
     Readable.from(csvString)
       .pipe(csvParser())
       .on("data", (data) => {
-        if (data.Date && data.Description) {
           results.push(data);
-        }
       })
-      .on("end", () => resolve(results))
+      .on("end", () => {
+        if(results.length === 0) {
+          reject(new Error("No valid data found in CSV file"));
+        }else{
+        resolve(results);
+        }
+        })
       .on("error", (error) => reject(error));
   });
 };

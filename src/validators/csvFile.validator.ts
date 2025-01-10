@@ -4,17 +4,22 @@ import  parseCSV  from "../utils/csvParser";
 const requiredColumns = ["Date", "Description", "Amount", "Currency"];
 
 const validateSchema = (transactions: any[]): boolean => {
-    // console.log(transactions);
-  const columns = Object.keys(transactions[0]);
-  return requiredColumns.every((col) => columns.includes(col));
+    const columns = Object.keys(transactions[0]);
+    return requiredColumns.every((col) => columns.includes(col));
+};
+
+const validateDateFormat = (dateString: string): boolean => {
+  // Regular expression to match the format day-month-year
+  const regex = /^\d{2}-\d{2}-\d{4}$/;
+  return regex.test(dateString);
 };
 
 const validateDataTypes = (transactions: any[]): boolean => {
   for (const transaction of transactions) {
-    // if (isNaN(Date.parse(transaction.Date))) {
-    //     console.log("date", Date.parse(transaction.Date));
-    //   return false;
-    // }
+    // Validate date format
+    if (!validateDateFormat(transaction.Date)) {
+      return false;
+    }
     if (typeof transaction.Description !== "string") {
       return false;
     }
@@ -33,7 +38,6 @@ const checkForDuplicates = (transactions: any[]): boolean => {
   for (const transaction of transactions) {
     const key = `${transaction.Date}-${transaction.Description}`;
     if (seen.has(key)) {
-        console.log("key", key);
       return false;
     }
     seen.add(key);
