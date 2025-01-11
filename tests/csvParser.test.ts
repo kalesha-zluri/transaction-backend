@@ -41,7 +41,7 @@ describe("parseCSV", () => {
     const result = await parseCSV(invalidBuffer);
     expect(result).toEqual({
       data: [],
-      error: expect.stringContaining("CSV parsing error: No data found"),
+      error: expect.stringContaining("No transactions found"),
     });
   });
 });

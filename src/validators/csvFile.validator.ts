@@ -64,7 +64,6 @@ export const validateCSVUpload = async (req: Request, res: Response, next: NextF
         .json({ error: "Invalid file schema: Missing required columns" });
         return;
     }
-
     if (!validateDataTypes(transactions.data)) {
        res.status(400).json({ error: "Invalid data types in file" });
        return;
