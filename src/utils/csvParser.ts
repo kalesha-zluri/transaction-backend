@@ -1,27 +1,35 @@
-import { Readable } from 'stream';
-import csvParser from 'csv-parser';
+import { Readable } from "stream";
+import csvParser from "csv-parser";
 
-const parseCSV = async (buffer: Buffer): Promise<any[]> => {
+const parseCSV = async (
+  buffer: Buffer
+): Promise<{ data: any[]; error?: string }> => {
   const results: any[] = [];
-  let csvString = buffer.toString();
-  // Remove BOM if it exists
-  if (csvString.charCodeAt(0) === 0xfeff) {
-    csvString = csvString.slice(1);
-  }
-  return new Promise((resolve, reject) => {
-    Readable.from(csvString)
+  const csvString = buffer.toString();
+
+  return new Promise((resolve) => {
+    const readable = Readable.from(csvString);
+
+    readable
       .pipe(csvParser())
       .on("data", (data) => {
-          results.push(data);
+        results.push(data);
       })
       .on("end", () => {
-        if(results.length === 0) {
-          reject(new Error("No valid data found in CSV file"));
-        }else{
-        resolve(results);
+        if(results.length==0 && csvString.trim() === "") {
+          resolve({ data: [], error: "CSV content is empty" });
         }
-        })
-      .on("error", (error) => reject(error));
+        else if(results.length==0 && csvString.trim() !== "") {
+          resolve({ data: [], error: "CSV parsing error: No data found" });
+        }
+        else {
+          resolve({ data: results });
+        }
+      })
+      .on("error", (error) => {
+        // Return an error in the result
+        resolve({ data: [], error: `CSV parsing error: ${error.message}` });
+      });
   });
 };
 

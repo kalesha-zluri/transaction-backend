@@ -55,7 +55,7 @@ describe("validateCSVUpload middleware", () => {
     expect(response.body.error).toBe("Invalid file schema: Missing required columns");
   });
 
-  test("should return error if data types are invalid", async () => {
+  test("should return error if currency data type is invalid", async () => {
     const invalidDataTypesCSV = "Date,Description,Amount,Currency\n12-12-2023,Test,abc,USD";
     const response = await request(app)
       .post("/upload")
@@ -67,6 +67,19 @@ describe("validateCSVUpload middleware", () => {
     expect(response.body.error).toBe("Invalid data types in file");
   });
 
+  test("should return error if format of date is invalid", async () => {
+    const invalidDataTypesCSV =
+      "Date,Description,Amount,Currency\nxx-12-2023,Test,20,USD";
+    const response = await request(app)
+      .post("/upload")
+      .attach("file", createCSVBuffer(invalidDataTypesCSV), {
+        filename: "invalid.csv",
+        contentType: "text/csv",
+      });
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe("Invalid data types in file");
+  });
+  
   test("should return error if duplicate transactions are found", async () => {
     const duplicateCSV = `Date,Description,Amount,Currency\n12-12-2023,Test,100,USD\n12-12-2023,Test,100,USD`;
     const response = await request(app)

@@ -20,13 +20,8 @@ const validateDataTypes = (transactions: any[]): boolean => {
     if (!validateDateFormat(transaction.Date)) {
       return false;
     }
-    if (typeof transaction.Description !== "string") {
-      return false;
-    }
+    //validate amount
     if (isNaN(parseFloat(transaction.Amount))) {
-      return false;
-    }
-    if (typeof transaction.Currency !== "string") {
       return false;
     }
   }
@@ -58,24 +53,29 @@ export const validateCSVUpload = async (req: Request, res: Response, next: NextF
     }
     const transactions = await parseCSV(file.buffer);
 
-    if (!validateSchema(transactions)) {
+    if(transactions.data.length === 0) {
+      res.status(400).json({ error: transactions.error });
+      return;
+    }
+
+    if (!validateSchema(transactions.data)) {
        res
         .status(400)
         .json({ error: "Invalid file schema: Missing required columns" });
         return;
     }
 
-    if (!validateDataTypes(transactions)) {
+    if (!validateDataTypes(transactions.data)) {
        res.status(400).json({ error: "Invalid data types in file" });
        return;
     }
 
-    if (!checkForDuplicates(transactions)) {
+    if (!checkForDuplicates(transactions.data)) {
        res.status(400).json({ error: "Duplicate transaction found" });
        return;
     }
 
-    req.body.transactions = transactions;
+    req.body.transactions = transactions.data;
     next();
   } catch (error) {
     next(error);

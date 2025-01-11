@@ -10,3 +10,12 @@ export const saveTransactions = async (transactions: any[]) => {
     throw error;
   }
 };
+
+export const createTransaction = async (transaction :any) =>{
+  try{
+    const result = await prisma.transaction.create({data: transaction});
+  }
+  catch(error){
+    throw error;
+  }
+}
