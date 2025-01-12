@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { uploadTransactions } from "../src/controllers/uploadTransactions.controller";
-import { saveTransactions } from "../src/services/savetransactions.service";
+import { saveTransactions } from "../src/services/databaseOperations.service";
 
-jest.mock("../src/services/saveTransactions.service");
+jest.mock("../src/services/databaseOperations.service");
 
 describe("uploadTransactions", () => {
   let req: Partial<Request>;

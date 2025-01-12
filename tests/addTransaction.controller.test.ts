@@ -3,11 +3,11 @@ import { validateTransaction } from "../src/validators/transaction.validator";
 import {
   checkDuplicateTransaction,
   createTransaction,
-} from "../src/services/savetransactions.service";
+} from "../src/services/databaseOperations.service";
 import { Request, Response, NextFunction } from "express";
 
 jest.mock("../src/validators/transaction.validator");
-jest.mock("../src/services/savetransactions.service");
+jest.mock("../src/services/databaseOperations.service");
 
 describe("addTransaction Controller", () => {
   let req: Partial<Request>;

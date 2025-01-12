@@ -30,7 +30,7 @@ describe("validateTransaction", () => {
       Currency: "USD",
     };
     expect(validateTransaction(transactionInvalidDate)).toBe(
-      "Invaid date format. Expected format: dd-mm-yyyy"
+      "Invalid date format. Expected format: dd-mm-yyyy"
     );
   });
 

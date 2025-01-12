@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction} from "express";
-import { createTransaction, checkDuplicateTransaction} from "../services/savetransactions.service";
+import { createTransaction, checkDuplicateTransaction} from "../services/databaseOperations.service";
 import { validateTransaction } from "../validators/transaction.validator";
 
 export const addTransaction = async(req: Request, res: Response, next:NextFunction)=>{
