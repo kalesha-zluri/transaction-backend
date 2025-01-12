@@ -9,7 +9,7 @@ export const validateTransaction = (transaction : any): string|null =>{
 
     const dateRegex = /^\d{2}-\d{2}-\d{4}$/;
     if(!dateRegex.test(transaction.Date)){
-        return "Invaid date format. Expected format: dd-mm-yyyy";
+        return "Invalid date format. Expected format: dd-mm-yyyy";
     }
 
     if(isNaN(parseFloat(transaction.Amount))){

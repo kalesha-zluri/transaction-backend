@@ -3,7 +3,7 @@ import {
   saveTransactions,
   createTransaction,
   checkDuplicateTransaction,
-} from "../src/services/savetransactions.service";
+} from "../src/services/databaseOperations.service";
 
 jest.mock("@prisma/client", () => {
   const mPrismaClient = {

@@ -34,4 +34,17 @@ export const checkDuplicateTransaction = async(transaction: any) =>{
   catch(error){
     throw error;
   }
-}
+};
+
+export const softDeleteTransaction = async(id: number)=>{
+  try{
+    const transaction = await prisma.transaction.update({
+      where:{id},
+      data: {isDeleted: true},
+    });
+    return transaction;
+  }
+  catch(error){
+    throw error;
+  }
+};
