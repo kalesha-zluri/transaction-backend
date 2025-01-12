@@ -3,6 +3,7 @@ import {
   saveTransactions,
   createTransaction,
   checkDuplicateTransaction,
+  softDeleteTransaction,
 } from "../src/services/databaseOperations.service";
 
 jest.mock("@prisma/client", () => {
@@ -11,12 +12,13 @@ jest.mock("@prisma/client", () => {
       createMany: jest.fn(),
       create: jest.fn(),
       findFirst: jest.fn(),
+      update: jest.fn(),
     },
   };
   return { PrismaClient: jest.fn(() => mPrismaClient) };
 });
 
-describe("saveTransactions service", () => {
+describe("Database Operations Service", () => {
   let prisma: PrismaClient;
 
   beforeEach(() => {
@@ -129,6 +131,40 @@ describe("saveTransactions service", () => {
         new Error("Database error")
       );
       await expect(checkDuplicateTransaction(transaction)).rejects.toThrow(
+        "Database error"
+      );
+    });
+  });
+
+  describe("softDeleteTransaction", () => {
+    it("should mark a transaction as deleted in the database", async () => {
+      const transactionId = 1;
+      const mockTransaction = {
+        id: transactionId,
+        Date: "01-01-2021",
+        Description: "Test",
+        Amount: "100",
+        Currency: "USD",
+        isDeleted: true,
+      };
+      (prisma.transaction.update as jest.Mock).mockResolvedValueOnce(
+        mockTransaction
+      );
+
+      const result = await softDeleteTransaction(transactionId);
+      expect(prisma.transaction.update).toHaveBeenCalledWith({
+        where: { id: transactionId },
+        data: { isDeleted: true },
+      });
+      expect(result).toEqual(mockTransaction);
+    });
+
+    it("should handle errors during soft delete", async () => {
+      const transactionId = 1;
+      (prisma.transaction.update as jest.Mock).mockRejectedValueOnce(
+        new Error("Database error")
+      );
+      await expect(softDeleteTransaction(transactionId)).rejects.toThrow(
         "Database error"
       );
     });
