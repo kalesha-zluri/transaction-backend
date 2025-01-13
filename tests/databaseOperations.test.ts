@@ -4,6 +4,8 @@ import {
   createTransaction,
   checkDuplicateTransaction,
   softDeleteTransaction,
+  getTransactions,
+  updateTransaction,
 } from "../src/services/databaseOperations.service";
 
 jest.mock("@prisma/client", () => {
@@ -13,6 +15,8 @@ jest.mock("@prisma/client", () => {
       create: jest.fn(),
       findFirst: jest.fn(),
       update: jest.fn(),
+      findMany: jest.fn(),
+      count: jest.fn(),
     },
   };
   return { PrismaClient: jest.fn(() => mPrismaClient) };
@@ -165,6 +169,209 @@ describe("Database Operations Service", () => {
         new Error("Database error")
       );
       await expect(softDeleteTransaction(transactionId)).rejects.toThrow(
+        "Database error"
+      );
+    });
+  });
+
+  describe("getTransactions service", () => {
+    let prisma: PrismaClient;
+
+    beforeEach(() => {
+      prisma = new PrismaClient();
+    });
+
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it("should fetch transactions with pagination", async () => {
+      const mockTransactions = [
+        {
+          id: 1,
+          Date: "01-01-2021",
+          Description: "Test 1",
+          Amount: "100",
+          Currency: "USD",
+          isDeleted: false,
+        },
+        {
+          id: 2,
+          Date: "01-02-2021",
+          Description: "Test 2",
+          Amount: "200",
+          Currency: "USD",
+          isDeleted: false,
+        },
+      ];
+      const mockTotalCount = 2;
+
+      (prisma.transaction.findMany as jest.Mock).mockResolvedValueOnce(
+        mockTransactions
+      );
+      (prisma.transaction.count as jest.Mock).mockResolvedValueOnce(
+        mockTotalCount
+      );
+
+      const page = 1;
+      const limit = 10;
+
+      const result = await getTransactions(page, limit);
+
+      expect(prisma.transaction.findMany).toHaveBeenCalledWith({
+        where: { isDeleted: false },
+        orderBy: { Date: "desc" },
+        skip: 0,
+        take: limit,
+      });
+      expect(prisma.transaction.count).toHaveBeenCalledWith({
+        where: { isDeleted: false },
+      });
+      expect(result).toEqual({
+        transactions: mockTransactions,
+        totalCount: mockTotalCount,
+      });
+    });
+
+    it("should handle errors during fetching transactions", async () => {
+      (prisma.transaction.findMany as jest.Mock).mockRejectedValueOnce(
+        new Error("Database error")
+      );
+
+      const page = 1;
+      const limit = 10;
+
+      await expect(getTransactions(page, limit)).rejects.toThrow(
+        "Database error"
+      );
+    });
+  });
+
+  describe("getTransactions service", () => {
+    let prisma: PrismaClient;
+
+    beforeEach(() => {
+      prisma = new PrismaClient();
+    });
+
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it("should fetch transactions with pagination", async () => {
+      const mockTransactions = [
+        {
+          id: 1,
+          Date: "01-01-2021",
+          Description: "Test 1",
+          Amount: "100",
+          Currency: "USD",
+          isDeleted: false,
+        },
+        {
+          id: 2,
+          Date: "01-02-2021",
+          Description: "Test 2",
+          Amount: "200",
+          Currency: "USD",
+          isDeleted: false,
+        },
+      ];
+      const mockTotalCount = 2;
+
+      (prisma.transaction.findMany as jest.Mock).mockResolvedValueOnce(
+        mockTransactions
+      );
+      (prisma.transaction.count as jest.Mock).mockResolvedValueOnce(
+        mockTotalCount
+      );
+
+      const page = 1;
+      const limit = 10;
+
+      const result = await getTransactions(page, limit);
+
+      expect(prisma.transaction.findMany).toHaveBeenCalledWith({
+        where: { isDeleted: false },
+        orderBy: { Date: "desc" },
+        skip: 0,
+        take: limit,
+      });
+      expect(prisma.transaction.count).toHaveBeenCalledWith({
+        where: { isDeleted: false },
+      });
+      expect(result).toEqual({
+        transactions: mockTransactions,
+        totalCount: mockTotalCount,
+      });
+    });
+
+    it("should handle errors during fetching transactions", async () => {
+      (prisma.transaction.findMany as jest.Mock).mockRejectedValueOnce(
+        new Error("Database error")
+      );
+
+      const page = 1;
+      const limit = 10;
+
+      await expect(getTransactions(page, limit)).rejects.toThrow(
+        "Database error"
+      );
+    });
+  });
+
+  describe("updateTransaction service", () => {
+    let prisma: PrismaClient;
+
+    beforeEach(() => {
+      prisma = new PrismaClient();
+    });
+
+    afterEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it("should update a transaction and return the updated transaction", async () => {
+      const mockTransaction = {
+        id: 1,
+        Date: "01-01-2021",
+        Description: "Updated Description",
+        Amount: "150",
+        Currency: "USD",
+        isDeleted: false,
+      };
+
+      (prisma.transaction.update as jest.Mock).mockResolvedValueOnce(
+        mockTransaction
+      );
+
+      const id = 1;
+      const transactionData = {
+        Description: "Updated Description",
+        Amount: "150",
+      };
+
+      const result = await updateTransaction(id, transactionData);
+
+      expect(prisma.transaction.update).toHaveBeenCalledWith({
+        where: { id },
+        data: transactionData,
+      });
+      expect(result).toEqual(mockTransaction);
+    });
+
+    it("should handle errors during transaction update", async () => {
+      (prisma.transaction.update as jest.Mock).mockRejectedValueOnce(
+        new Error("Database error")
+      );
+
+      const id = 1;
+      const transactionData = {
+        Description: "Updated Description",
+        Amount: "150",
+      };
+
+      await expect(updateTransaction(id, transactionData)).rejects.toThrow(
         "Database error"
       );
     });

@@ -58,7 +58,8 @@ export const getTransactions = async (page: number, limit: number) => {
         take: limit,
       }),
       prisma.transaction.count({
-        where: { isDeleted: false },
+        where: { isDeleted: 
+          false },
       }),
     ]);
 
