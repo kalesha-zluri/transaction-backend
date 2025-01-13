@@ -48,3 +48,26 @@ export const softDeleteTransaction = async(id: number)=>{
     throw error;
   }
 };
+
+export const getTransactions = async(page: number,limit: number)=>{
+  try{
+  const skip = (page-1)*limit;
+
+  const [transactions, totalCount] = await Promise.all([
+    prisma.transaction.findMany({
+      where: {isDeleted: false},
+      orderBy: {Date: "desc"},
+      skip,
+      take: limit,
+    }),
+    prisma.transaction.count({
+      where: {isDeleted:false},
+    }),
+  ]);
+
+  return {transactions, totalCount};
+  }
+  catch(error){
+    throw error;
+  }
+}
