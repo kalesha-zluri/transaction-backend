@@ -1,11 +1,11 @@
 import { Request, Response, NextFunction } from "express";
-import  parseCSV  from "../utils/csvParser";
+import parseCSV from "../utils/csvParser";
 
 const requiredColumns = ["Date", "Description", "Amount", "Currency"];
 
 const validateSchema = (transactions: any[]): boolean => {
-    const columns = Object.keys(transactions[0]);
-    return requiredColumns.every((col) => columns.includes(col));
+  const columns = Object.keys(transactions[0]);
+  return requiredColumns.every((col) => columns.includes(col));
 };
 
 const validateDateFormat = (dateString: string): boolean => {
@@ -40,12 +40,16 @@ const checkForDuplicates = (transactions: any[]): boolean => {
   return true;
 };
 
-export const validateCSVUpload = async (req: Request, res: Response, next: NextFunction) => {
+export const validateCSVUpload = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const file = req.file;
     if (!file) {
-        res.status(400).json({ error: "File is required" });
-        return;
+      res.status(400).json({ error: "File is required" });
+      return;
     }
     if (!file.mimetype.includes("csv")) {
       res.status(400).json({ error: "Invalid file type" });
@@ -53,25 +57,25 @@ export const validateCSVUpload = async (req: Request, res: Response, next: NextF
     }
     const transactions = await parseCSV(file.buffer);
 
-    if(transactions.data.length === 0) {
+    if (transactions.data.length === 0) {
       res.status(400).json({ error: transactions.error });
       return;
     }
 
     if (!validateSchema(transactions.data)) {
-       res
+      res
         .status(400)
         .json({ error: "Invalid file schema: Missing required columns" });
-        return;
+      return;
     }
     if (!validateDataTypes(transactions.data)) {
-       res.status(400).json({ error: "Invalid data types in file" });
-       return;
+      res.status(400).json({ error: "Invalid data types in file" });
+      return;
     }
 
     if (!checkForDuplicates(transactions.data)) {
-       res.status(400).json({ error: "Duplicate transaction found" });
-       return;
+      res.status(400).json({ error: "Duplicate transaction found" });
+      return;
     }
 
     req.body.transactions = transactions.data;

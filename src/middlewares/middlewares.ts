@@ -1,4 +1,4 @@
-import { Application} from "express";
+import { Application } from "express";
 import express from "express";
 import multer from "multer";
 
@@ -9,5 +9,4 @@ export const setupMiddleware = (app: Application): void => {
   // Middleware to handle file uploads
   const upload = multer();
   app.use(upload.single("file"));
-  
 };

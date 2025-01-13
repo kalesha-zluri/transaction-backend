@@ -11,63 +11,71 @@ export const saveTransactions = async (transactions: any[]) => {
   }
 };
 
-export const createTransaction = async (transaction: any) =>{
-  try{
-    const result = await prisma.transaction.create({data: transaction});
+export const createTransaction = async (transaction: any) => {
+  try {
+    const result = await prisma.transaction.create({ data: transaction });
     return result;
-  }
-  catch(error){
+  } catch (error) {
     throw error;
   }
 };
 
-export const checkDuplicateTransaction = async(transaction: any) =>{
-  try{
+export const checkDuplicateTransaction = async (transaction: any) => {
+  try {
     const existingTransaction = await prisma.transaction.findFirst({
       where: {
         Date: transaction.Date,
         Description: transaction.Description,
       },
     });
-    return !!existingTransaction
-  }
-  catch(error){
+    return !!existingTransaction;
+  } catch (error) {
     throw error;
   }
 };
 
-export const softDeleteTransaction = async(id: number)=>{
-  try{
+export const softDeleteTransaction = async (id: number) => {
+  try {
     const transaction = await prisma.transaction.update({
-      where:{id},
-      data: {isDeleted: true},
+      where: { id },
+      data: { isDeleted: true },
     });
     return transaction;
-  }
-  catch(error){
+  } catch (error) {
     throw error;
   }
 };
 
-export const getTransactions = async(page: number,limit: number)=>{
-  try{
-  const skip = (page-1)*limit;
+export const getTransactions = async (page: number, limit: number) => {
+  try {
+    const skip = (page - 1) * limit;
 
-  const [transactions, totalCount] = await Promise.all([
-    prisma.transaction.findMany({
-      where: {isDeleted: false},
-      orderBy: {Date: "desc"},
-      skip,
-      take: limit,
-    }),
-    prisma.transaction.count({
-      where: {isDeleted:false},
-    }),
-  ]);
+    const [transactions, totalCount] = await Promise.all([
+      prisma.transaction.findMany({
+        where: { isDeleted: false },
+        orderBy: { Date: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.transaction.count({
+        where: { isDeleted: false },
+      }),
+    ]);
 
-  return {transactions, totalCount};
-  }
-  catch(error){
+    return { transactions, totalCount };
+  } catch (error) {
     throw error;
   }
-}
+};
+
+export const updateTransaction = async (id: number, transaction: any) => {
+  try {
+    const result = await prisma.transaction.update({
+      where: { id },
+      data: transaction,
+    });
+    return result;
+  } catch (error) {
+    throw error;
+  }
+};
