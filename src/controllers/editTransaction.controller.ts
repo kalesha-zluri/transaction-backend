@@ -1,40 +1,39 @@
 import { Request, Response, NextFunction } from "express";
 import {
-  createTransaction,
+  updateTransaction,
   checkDuplicateTransaction,
 } from "../services/databaseOperations.service";
 import { validateTransaction } from "../validators/transaction.validator";
 
-export const addTransaction = async (
+export const editTransaction = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
+    const { id } = req.params;
     const transaction = req.body.transaction;
 
-    //validate the transaction
     const validationError = validateTransaction(transaction);
     if (validationError) {
       res.status(400).json({ error: validationError });
       return;
     }
 
-    //check for duplicates in database
     const isDuplicate = await checkDuplicateTransaction(transaction);
     if (isDuplicate) {
       res.status(400).json({ error: "Duplicate transaction found" });
       return;
     }
 
-    //save the transaction
-    const newTransaction = await createTransaction(transaction);
-    res
-      .status(201)
-      .json({
-        message: "Transaction added successfully",
-        data: newTransaction,
-      });
+    const updatedTransaction = await updateTransaction(
+      parseInt(id),
+      transaction
+    );
+    res.status(200).json({
+      message: "Transaction updated successfully",
+      data: updatedTransaction,
+    });
   } catch (error) {
     next(error);
   }

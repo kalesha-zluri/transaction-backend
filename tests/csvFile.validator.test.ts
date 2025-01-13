@@ -8,14 +8,9 @@ const app = express();
 const upload = multer();
 
 // Attach the middleware for testing
-app.post(
-  "/upload",
-  upload.single("file"),
-  validateCSVUpload,
-  (req, res) => {
-    res.status(200).json({ success: true, transactions: req.body.transactions });
-  }
-);
+app.post("/upload", upload.single("file"), validateCSVUpload, (req, res) => {
+  res.status(200).json({ success: true, transactions: req.body.transactions });
+});
 
 // Utility function to create a mock CSV buffer
 const createCSVBuffer = (data: string) => {
@@ -52,11 +47,14 @@ describe("validateCSVUpload middleware", () => {
         contentType: "text/csv",
       });
     expect(response.status).toBe(400);
-    expect(response.body.error).toBe("Invalid file schema: Missing required columns");
+    expect(response.body.error).toBe(
+      "Invalid file schema: Missing required columns"
+    );
   });
 
   test("should return error if currency data type is invalid", async () => {
-    const invalidDataTypesCSV = "Date,Description,Amount,Currency\n12-12-2023,Test,abc,USD";
+    const invalidDataTypesCSV =
+      "Date,Description,Amount,Currency\n12-12-2023,Test,abc,USD";
     const response = await request(app)
       .post("/upload")
       .attach("file", createCSVBuffer(invalidDataTypesCSV), {
@@ -79,7 +77,7 @@ describe("validateCSVUpload middleware", () => {
     expect(response.status).toBe(400);
     expect(response.body.error).toBe("Invalid data types in file");
   });
-  
+
   test("should return error if duplicate transactions are found", async () => {
     const duplicateCSV = `Date,Description,Amount,Currency\n12-12-2023,Test,100,USD\n12-12-2023,Test,100,USD`;
     const response = await request(app)
@@ -103,8 +101,18 @@ describe("validateCSVUpload middleware", () => {
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
     expect(response.body.transactions).toEqual([
-      { Date: "12-12-2023", Description: "Test", Amount: "100", Currency: "USD" },
-      { Date: "13-12-2023", Description: "Sample", Amount: "200", Currency: "EUR" },
+      {
+        Date: "12-12-2023",
+        Description: "Test",
+        Amount: "100",
+        Currency: "USD",
+      },
+      {
+        Date: "13-12-2023",
+        Description: "Sample",
+        Amount: "200",
+        Currency: "EUR",
+      },
     ]);
   });
 });

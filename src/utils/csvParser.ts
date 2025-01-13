@@ -16,13 +16,11 @@ const parseCSV = async (
         results.push(data);
       })
       .on("end", () => {
-        if(results.length==0 && csvString.trim() === "") {
+        if (results.length == 0 && csvString.trim() === "") {
           resolve({ data: [], error: "CSV content is empty" });
-        }
-        else if(results.length==0 && csvString.trim() !== "") {
+        } else if (results.length == 0 && csvString.trim() !== "") {
           resolve({ data: [], error: "No transactions found" });
-        }
-        else {
+        } else {
           resolve({ data: results });
         }
       })

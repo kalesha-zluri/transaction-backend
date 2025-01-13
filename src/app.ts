@@ -1,5 +1,5 @@
 import express, { Application } from "express";
-import  transactionRouter  from "./routes/transaction.routes";
+import transactionRouter from "./routes/transaction.routes";
 import { setupMiddleware } from "./middlewares/middlewares";
 import { errorHandler } from "./middlewares/errorHandler";
 
