@@ -11,6 +11,11 @@ export const getTransactionList = async (
     const pageNumber = parseInt(page as string, 10);
     const limitNumber = parseInt(limit as string, 10);
 
+    if (isNaN(pageNumber) || isNaN(limitNumber) || pageNumber <= 0 || limitNumber <= 0) {
+      res.status(400).json({ error: "Invalid query parameters" });
+      return;
+    }
+
     const { transactions, totalCount } = await getTransactions(
       pageNumber,
       limitNumber
