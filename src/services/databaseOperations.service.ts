@@ -26,6 +26,7 @@ export const checkDuplicateTransaction = async (transaction: any) => {
       where: {
         Date: transaction.Date,
         Description: transaction.Description,
+        isDeleted: false,
       },
     });
     return !!existingTransaction;
