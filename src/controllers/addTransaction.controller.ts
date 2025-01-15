@@ -12,7 +12,7 @@ export const addTransaction = async (
   next: NextFunction
 ) => {
   try {
-    const transaction= req.body;
+    const transaction: CSVRecord= req.body;
     // Schema validation
     if (!validateSchema(transaction)) {
       res.status(400).json({

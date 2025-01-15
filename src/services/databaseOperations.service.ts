@@ -37,12 +37,28 @@ export const checkDuplicateTransaction = async (transaction: any) => {
 
 export const softDeleteTransaction = async (id: number) => {
   try {
-    const transaction = await prisma.transaction.update({
+    // Check if the transaction exists and is not already deleted
+    const transaction = await prisma.transaction.findUnique({
+      where: { id },
+    });
+
+    if (!transaction) {
+      return { error: "Transaction not found" };
+    }
+
+    if (transaction.isDeleted) {
+      return { error: "Transaction already deleted" };
+    }
+
+    // Soft delete the transaction
+    const deletedTransaction = await prisma.transaction.update({
       where: { id },
       data: { isDeleted: true },
     });
-    return transaction;
+
+    return deletedTransaction;
   } catch (error) {
+    console.error("Error deleting transaction:", error);
     throw error;
   }
 };
