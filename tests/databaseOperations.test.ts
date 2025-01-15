@@ -37,10 +37,10 @@ describe("Database Operations Service", () => {
     it("should save transactions to the database", async () => {
       const transactions = [
         {
-          Date: "01-01-2021",
-          Description: "Test",
-          Amount: "100",
-          Currency: "USD",
+          date: "01-01-2021",
+          description: "Test",
+          amount: "100",
+          currency: "USD",
         },
       ];
       await saveTransactions(transactions);
@@ -52,10 +52,10 @@ describe("Database Operations Service", () => {
     it("should handle errors during saving", async () => {
       const transactions = [
         {
-          Date: "01-01-2021",
-          Description: "Test",
-          Amount: "100",
-          Currency: "USD",
+          date: "01-01-2021",
+          description: "Test",
+          amount: "100",
+          currency: "USD",
         },
       ];
       (prisma.transaction.createMany as jest.Mock).mockRejectedValueOnce(
@@ -70,10 +70,10 @@ describe("Database Operations Service", () => {
   describe("createTransaction", () => {
     it("should create a transaction in the database", async () => {
       const transaction = {
-        Date: "01-01-2021",
-        Description: "Test",
-        Amount: "100",
-        Currency: "USD",
+        date: "01-01-2021",
+        description: "Test",
+        amount: "100",
+        currency: "USD",
       };
       await createTransaction(transaction);
       expect(prisma.transaction.create).toHaveBeenCalledWith({
@@ -83,10 +83,10 @@ describe("Database Operations Service", () => {
 
     it("should handle errors during transaction creation", async () => {
       const transaction = {
-        Date: "01-01-2021",
-        Description: "Test",
-        Amount: "100",
-        Currency: "USD",
+        date: "01-01-2021",
+        description: "Test",
+        amount: "100",
+        currency: "USD",
       };
       (prisma.transaction.create as jest.Mock).mockRejectedValueOnce(
         new Error("Database error")
@@ -100,10 +100,10 @@ describe("Database Operations Service", () => {
   describe("checkDuplicateTransaction", () => {
     it("should return true if a duplicate transaction is found", async () => {
       const transaction = {
-        Date: "01-01-2021",
-        Description: "Test",
-        Amount: "100",
-        Currency: "USD",
+        date: "01-01-2021",
+        description: "Test",
+        amount: "100",
+        currency: "USD",
       };
       (prisma.transaction.findFirst as jest.Mock).mockResolvedValueOnce(
         transaction
@@ -114,10 +114,10 @@ describe("Database Operations Service", () => {
 
     it("should return false if no duplicate transaction is found", async () => {
       const transaction = {
-        Date: "01-01-2021",
-        Description: "Test",
-        Amount: "100",
-        Currency: "USD",
+        date: "01-01-2021",
+        description: "Test",
+        amount: "100",
+        currency: "USD",
       };
       (prisma.transaction.findFirst as jest.Mock).mockResolvedValueOnce(null);
       const result = await checkDuplicateTransaction(transaction);
@@ -126,10 +126,10 @@ describe("Database Operations Service", () => {
 
     it("should handle errors during duplicate check", async () => {
       const transaction = {
-        Date: "01-01-2021",
-        Description: "Test",
-        Amount: "100",
-        Currency: "USD",
+        date: "01-01-2021",
+        description: "Test",
+        amount: "100",
+        currency: "USD",
       };
       (prisma.transaction.findFirst as jest.Mock).mockRejectedValueOnce(
         new Error("Database error")
@@ -145,10 +145,10 @@ describe("Database Operations Service", () => {
       const transactionId = 1;
       const mockTransaction = {
         id: transactionId,
-        Date: "01-01-2021",
-        Description: "Test",
-        Amount: "100",
-        Currency: "USD",
+        date: "01-01-2021",
+        description: "Test",
+        amount: "100",
+        currency: "USD",
         isDeleted: true,
       };
       (prisma.transaction.update as jest.Mock).mockResolvedValueOnce(
@@ -189,10 +189,10 @@ describe("Database Operations Service", () => {
       const mockTransactions = [
         {
           id: 1,
-          Date: "01-01-2021",
-          Description: "Test 1",
-          Amount: "100",
-          Currency: "USD",
+          date: "01-01-2021",
+          description: "Test 1",
+          amount: "100",
+          currency: "USD",
           isDeleted: false,
         },
         {
