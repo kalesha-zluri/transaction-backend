@@ -2,8 +2,10 @@ import { Request, Response, NextFunction } from "express";
 import {
   updateTransaction,
   checkDuplicateTransaction,
+  getTransactionById
 } from "../services/databaseOperations.service";
-import { validateTransaction } from "../middlewares/transactionValidator";
+import { validateSchema, validateDataTypes } from "../utils/validations";
+import { CSVRecord } from "../types/csv.types";
 
 export const editTransaction = async (
   req: Request,
@@ -12,11 +14,34 @@ export const editTransaction = async (
 ) => {
   try {
     const { id } = req.params;
-    const transaction = req.body.transaction;
+    const transaction: CSVRecord = req.body;
+    
+    // Check if the transaction exists and is not deleted
+    const existingTransaction = await getTransactionById(parseInt(id));
+    if (!existingTransaction) {
+      res.status(404).json({ error: "Transaction not found" });
+      return
+    }
 
-    const validationError = validateTransaction(transaction);
-    if (validationError) {
-      res.status(400).json({ error: validationError });
+    if (existingTransaction.isDeleted) {
+      res.status(400).json({ error: "Transaction already deleted" });
+      return;
+    }
+
+    // Schema validation
+    if (!validateSchema(transaction)) {
+      res.status(400).json({
+        error: "Missing required fields: date, description, amount, currency",
+      });
+      return;
+    }
+
+    // Data type validation
+    if (!validateDataTypes(transaction)) {
+      res.status(400).json({
+        error:
+          "Invalid data types. Please check date format (DD-MM-YYYY), amount (numeric), and description",
+      });
       return;
     }
 
@@ -34,6 +59,7 @@ export const editTransaction = async (
       message: "Transaction updated successfully",
       data: updatedTransaction,
     });
+    return;
   } catch (error) {
     next(error);
   }
