@@ -24,8 +24,8 @@ export const checkDuplicateTransaction = async (transaction: any) => {
   try {
     const existingTransaction = await prisma.transaction.findFirst({
       where: {
-        date: transaction.Date,
-        description: transaction.Description,
+        date: transaction.date,
+        description: transaction.description,
         isDeleted: false,
       },
     });
@@ -37,12 +37,28 @@ export const checkDuplicateTransaction = async (transaction: any) => {
 
 export const softDeleteTransaction = async (id: number) => {
   try {
-    const transaction = await prisma.transaction.update({
+    // Check if the transaction exists and is not already deleted
+    const transaction = await prisma.transaction.findUnique({
+      where: { id },
+    });
+
+    if (!transaction) {
+      return { error: "Transaction not found" };
+    }
+
+    if (transaction.isDeleted) {
+      return { error: "Transaction already deleted" };
+    }
+
+    // Soft delete the transaction
+    const deletedTransaction = await prisma.transaction.update({
       where: { id },
       data: { isDeleted: true },
     });
-    return transaction;
+
+    return deletedTransaction;
   } catch (error) {
+    console.error("Error deleting transaction:", error);
     throw error;
   }
 };
@@ -59,8 +75,7 @@ export const getTransactions = async (page: number, limit: number) => {
         take: limit,
       }),
       prisma.transaction.count({
-        where: { isDeleted: 
-          false },
+        where: { isDeleted: false },
       }),
     ]);
 
@@ -78,6 +93,43 @@ export const updateTransaction = async (id: number, transaction: any) => {
     });
     return result;
   } catch (error) {
+    throw error;
+  }
+};
+
+export const getAllTransactionKeys = async () => {
+  try {
+    // Fetch all records from the database with isDeleted = false
+    const allRecords = await prisma.transaction.findMany({
+      where: {
+        isDeleted: false, // Ensure only non-deleted records are fetched
+      },
+      select: {
+        date: true,
+        description: true, // Select only the required fields
+      },
+    });
+
+    // Create a set of keys using the fetched data
+    const recordKeySet = new Set(
+      allRecords.map((record) => `${record.date}-${record.description}`)
+    );
+
+    return recordKeySet;
+  } catch (error) {
+    console.error("Error fetching transaction keys:", error);
+    return new Set(); // Return an empty set in case of errors
+  }
+};
+
+export const getTransactionById = async (id: number) => {
+  try {
+    const transaction = await prisma.transaction.findUnique({
+      where: { id },
+    });
+    return transaction;
+  } catch (error) {
+    console.error("Error fetching transaction by ID:", error);
     throw error;
   }
 };
