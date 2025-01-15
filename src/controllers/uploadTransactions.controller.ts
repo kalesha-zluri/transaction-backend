@@ -8,10 +8,10 @@ export const uploadTransactions = async (
 ) => {
   try {
     const transactions = req.body.transactions;
-    await saveTransactions(transactions);
+    const result = await saveTransactions(transactions);
     res
       .status(200)
-      .json({ message: "File uploaded and transactions saved successfully" });
+      .json({ message: "File uploaded and transactions saved successfully" , result});
   } catch (error) {
     next(error);
   }
