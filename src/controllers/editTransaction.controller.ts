@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import {
   updateTransaction,
   checkDuplicateTransaction,
+  getTransactionById
 } from "../services/databaseOperations.service";
 import { validateSchema, validateDataTypes } from "../utils/validations";
 import { CSVRecord } from "../types/csv.types";
@@ -14,6 +15,18 @@ export const editTransaction = async (
   try {
     const { id } = req.params;
     const transaction: CSVRecord = req.body;
+    
+    // Check if the transaction exists and is not deleted
+    const existingTransaction = await getTransactionById(parseInt(id));
+    if (!existingTransaction) {
+      res.status(404).json({ error: "Transaction not found" });
+      return
+    }
+
+    if (existingTransaction.isDeleted) {
+      res.status(400).json({ error: "Transaction already deleted" });
+      return;
+    }
 
     // Schema validation
     if (!validateSchema(transaction)) {
@@ -38,7 +51,10 @@ export const editTransaction = async (
       return;
     }
 
-    const updatedTransaction = await updateTransaction(parseInt(id), transaction);
+    const updatedTransaction = await updateTransaction(
+      parseInt(id),
+      transaction
+    );
     res.status(200).json({
       message: "Transaction updated successfully",
       data: updatedTransaction,
