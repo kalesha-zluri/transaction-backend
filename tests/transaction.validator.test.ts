@@ -1,4 +1,4 @@
-import { validateTransaction } from "../src/validators/transaction.validator";
+import { validateTransaction } from "../src/middlewares/transactionValidator";
 
 describe("validateTransaction", () => {
   it("should return null for valid transactions", () => {
