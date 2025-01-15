@@ -1,5 +1,5 @@
 import { addTransaction } from "../src/controllers/addTransaction.controller";
-import { validateTransaction } from "../src/validators/transaction.validator";
+import { validateTransaction } from "../src/middlewares/transactionValidator";
 import {
   checkDuplicateTransaction,
   createTransaction,
