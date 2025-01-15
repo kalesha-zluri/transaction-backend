@@ -13,7 +13,7 @@ export const editTransaction = async (
 ) => {
   try {
     const { id } = req.params;
-    const transaction: CSVRecord = req.body.transaction;
+    const transaction: CSVRecord = req.body;
 
     // Schema validation
     if (!validateSchema(transaction)) {
