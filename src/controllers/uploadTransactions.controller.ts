@@ -8,10 +8,16 @@ export const uploadTransactions = async (
 ) => {
   try {
     const transactions = req.body.transactions;
-    await saveTransactions(transactions);
+    const result = await saveTransactions(transactions);
+    const errors = req.body.errors;
     res
       .status(200)
-      .json({ message: "File uploaded and transactions saved successfully" });
+      .json({
+        message: "File uploaded and transactions saved successfully",
+        result,
+        errorMessage: "These transactions are having validation errors",
+        errors,
+      });
   } catch (error) {
     next(error);
   }
