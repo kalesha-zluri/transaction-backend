@@ -40,6 +40,18 @@ const checkForDuplicates = (transactions: any[]): boolean => {
   return true;
 };
 
+const removeDuplicates = (transactions: any[]): any[] => {
+  const seen = new Set();
+  return transactions.filter((transaction) => {
+    const key = `${transaction.Date}-${transaction.Description}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+};
+
 export const validateCSVUpload = async (
   req: Request,
   res: Response,
@@ -47,6 +59,7 @@ export const validateCSVUpload = async (
 ) => {
   try {
     const file = req.file;
+    const ignoreDuplicates = req.body.ignoreDuplicates==='true';
     if (!file) {
       res.status(400).json({ error: "File is required" });
       return;
@@ -73,11 +86,14 @@ export const validateCSVUpload = async (
       return;
     }
 
-    if (!checkForDuplicates(transactions.data)) {
+    if (!ignoreDuplicates && !checkForDuplicates(transactions.data)) {
       res.status(400).json({ error: "Duplicate transaction found" });
       return;
     }
 
+    if(ignoreDuplicates){
+      transactions.data = removeDuplicates(transactions.data);
+    }
     req.body.transactions = transactions.data;
     next();
   } catch (error) {
