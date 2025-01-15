@@ -75,8 +75,7 @@ export const getTransactions = async (page: number, limit: number) => {
         take: limit,
       }),
       prisma.transaction.count({
-        where: { isDeleted: 
-          false },
+        where: { isDeleted: false },
       }),
     ]);
 
@@ -111,7 +110,6 @@ export const getAllTransactionKeys = async () => {
       },
     });
 
-
     // Create a set of keys using the fetched data
     const recordKeySet = new Set(
       allRecords.map((record) => `${record.date}-${record.description}`)
@@ -124,3 +122,14 @@ export const getAllTransactionKeys = async () => {
   }
 };
 
+export const getTransactionById = async (id: number) => {
+  try {
+    const transaction = await prisma.transaction.findUnique({
+      where: { id },
+    });
+    return transaction;
+  } catch (error) {
+    console.error("Error fetching transaction by ID:", error);
+    throw error;
+  }
+};
