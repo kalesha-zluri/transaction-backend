@@ -3,7 +3,7 @@ import {
   createTransaction,
   checkDuplicateTransaction,
 } from "../services/databaseOperations.service";
-import { validateTransaction } from "../validators/transaction.validator";
+import { validateTransaction } from "../middlewares/transactionValidator";
 
 export const addTransaction = async (
   req: Request,

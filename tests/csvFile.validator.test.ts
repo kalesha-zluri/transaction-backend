@@ -1,7 +1,7 @@
 import request from "supertest";
 import express from "express";
 import multer from "multer";
-import { validateCSVUpload } from "../src/validators/csvFile.validator";
+import { validateCSVUpload } from "../src/middlewares/csvFileValidator";
 import { Readable } from "stream";
 
 const app = express();

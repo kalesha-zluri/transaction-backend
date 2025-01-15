@@ -24,8 +24,8 @@ export const checkDuplicateTransaction = async (transaction: any) => {
   try {
     const existingTransaction = await prisma.transaction.findFirst({
       where: {
-        Date: transaction.Date,
-        Description: transaction.Description,
+        date: transaction.Date,
+        description: transaction.Description,
         isDeleted: false,
       },
     });
@@ -54,7 +54,7 @@ export const getTransactions = async (page: number, limit: number) => {
     const [transactions, totalCount] = await Promise.all([
       prisma.transaction.findMany({
         where: { isDeleted: false },
-        orderBy: { Date: "desc" },
+        orderBy: { date: "desc" },
         skip,
         take: limit,
       }),

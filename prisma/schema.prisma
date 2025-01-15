@@ -15,12 +15,12 @@ datasource db {
 
 model Transaction {
   id          Int      @id @default(autoincrement())
-  Date        String
-  Description String
-  Amount      String
-  Currency    String
+  date        String
+  description String
+  amount      String
+  currency    String
   isDeleted   Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  @@unique([Date, Description])
+  @@unique([date, description])
 }

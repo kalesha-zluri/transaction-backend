@@ -5,7 +5,7 @@ import {
   updateTransaction,
   checkDuplicateTransaction,
 } from "../src/services/databaseOperations.service";
-import { validateTransaction } from "../src/validators/transaction.validator";
+import { validateTransaction } from "../src/middlewares/transactionValidator";
 
 // Mock the services and validator
 jest.mock("../src/services/databaseOperations.service");
