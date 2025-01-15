@@ -1,9 +1,10 @@
 import { Request, Response, NextFunction } from "express";
+import { validateSchema, validateDataTypes } from "../utils/validations";
 import {
-  createTransaction,
   checkDuplicateTransaction,
+  createTransaction,
 } from "../services/databaseOperations.service";
-import { validateTransaction } from "../middlewares/transactionValidator";
+import { CSVRecord } from "../types/csv.types";
 
 export const addTransaction = async (
   req: Request,
@@ -11,30 +12,38 @@ export const addTransaction = async (
   next: NextFunction
 ) => {
   try {
-    const transaction = req.body.transaction;
-
-    //validate the transaction
-    const validationError = validateTransaction(transaction);
-    if (validationError) {
-      res.status(400).json({ error: validationError });
+    const transaction= req.body;
+    // Schema validation
+    if (!validateSchema(transaction)) {
+      res.status(400).json({
+        error: "Missing required fields: date, description, amount, currency",
+      });
       return;
     }
 
-    //check for duplicates in database
+    // Data type validation
+    if (!validateDataTypes(transaction)) {
+      res.status(400).json({
+        error:
+          "Invalid data types. Please check date format (DD-MM-YYYY), amount (numeric), and description",
+      });
+      return;
+    }
+
+    // Check for duplicates in database
     const isDuplicate = await checkDuplicateTransaction(transaction);
     if (isDuplicate) {
       res.status(400).json({ error: "Duplicate transaction found" });
       return;
     }
 
-    //save the transaction
+    // Save the transaction
     const newTransaction = await createTransaction(transaction);
-    res
-      .status(201)
-      .json({
-        message: "Transaction added successfully",
-        data: newTransaction,
-      });
+    res.status(201).json({
+      message: "Transaction added successfully",
+      data: newTransaction,
+    });
+    return;
   } catch (error) {
     next(error);
   }

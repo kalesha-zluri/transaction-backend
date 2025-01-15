@@ -1,5 +1,5 @@
 import { CSVRecord } from "../types/csv.types";
-export const validateSchema = (data: Record<string, any>): boolean => {
+export const validateSchema = (data: CSVRecord): boolean => {
   const requiredColumns = ["date", "description", "amount", "currency"];
 
   const dataKeys = Object.keys(data).map((key) => key.toLowerCase());
