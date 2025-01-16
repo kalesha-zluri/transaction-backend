@@ -30,7 +30,9 @@ describe("parseCSV", () => {
 
     expect(result.data).toHaveLength(0);
     expect(result.errors?.length || 0).toBeGreaterThan(0); // Safely checking errors
-    expect(result.errors?.[0].reason).toBe("Invalid data types");
+    expect(result.errors?.[0].reason).toBe(
+      "Invalid data types. Please check date format (DD-MM-YYYY), amount (numeric)"
+    );
   });
 
   it("should return an error for duplicate transactions", async () => {
