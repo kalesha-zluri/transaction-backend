@@ -8,6 +8,12 @@ export const deleteTransaction = async (
 ) => {
   try {
     const { id } = req.params;
+    const parsedId = parseInt(id);
+    if (!id || isNaN(parsedId)) {
+      res.status(400).json({ error: "Invalid or missing transaction ID" });
+      return;
+    }
+
     const result = await softDeleteTransaction(parseInt(id));
 
     if ("error" in result) {
