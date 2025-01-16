@@ -26,6 +26,26 @@ describe("editTransaction controller", () => {
     jest.clearAllMocks();
   });
 
+  it("returns 400 if id is missing", async () => {
+      await editTransaction(mockReq as Request, mockRes as Response, mockNext);
+  
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+      expect(mockRes.json).toHaveBeenCalledWith({
+        error: "Invalid or missing transaction ID",
+      });
+    });
+  
+    it("returns 400 if id is not a number", async () => {
+      mockReq.params = { id: "abc" };
+  
+      await editTransaction(mockReq as Request, mockRes as Response, mockNext);
+  
+      expect(mockRes.status).toHaveBeenCalledWith(400);
+      expect(mockRes.json).toHaveBeenCalledWith({
+        error: "Invalid or missing transaction ID",
+      });
+    });
+
   it("returns 404 if transaction is not found", async () => {
     mockReq.params = { id: "123" };
     (getTransactionById as jest.Mock).mockResolvedValue(null);
