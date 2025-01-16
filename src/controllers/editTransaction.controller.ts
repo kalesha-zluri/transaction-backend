@@ -15,7 +15,12 @@ export const editTransaction = async (
   try {
     const { id } = req.params;
     const transaction: CSVRecord = req.body;
+    const parsedId = parseInt(id);
     
+    if (!id || isNaN(parsedId)) {
+      res.status(400).json({ error: "Invalid or missing transaction ID" });
+      return;
+    }
     // Check if the transaction exists and is not deleted
     const existingTransaction = await getTransactionById(parseInt(id));
     if (!existingTransaction) {
