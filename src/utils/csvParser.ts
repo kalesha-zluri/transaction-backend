@@ -40,7 +40,8 @@ const parseCSV = async (buffer: Buffer): Promise<ParserResult> => {
           errors.push({
             row: rowIndex,
             data: transformedData,
-            reason: "Invalid data types",
+            reason:
+              "Invalid data types. Please check date format (DD-MM-YYYY), amount (numeric)",
           });
           isValid = false;
         }
