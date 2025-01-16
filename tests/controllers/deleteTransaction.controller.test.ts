@@ -19,6 +19,26 @@ describe("deleteTransaction controller", () => {
     jest.clearAllMocks();
   });
 
+  it("returns 400 if id is missing", async () => {
+    await deleteTransaction(mockReq as Request, mockRes as Response, mockNext);
+
+    expect(mockRes.status).toHaveBeenCalledWith(400);
+    expect(mockRes.json).toHaveBeenCalledWith({
+      error: "Invalid or missing transaction ID",
+    });
+  });
+
+  it("returns 400 if id is not a number", async () => {
+    mockReq.params = { id: "abc" };
+
+    await deleteTransaction(mockReq as Request, mockRes as Response, mockNext);
+
+    expect(mockRes.status).toHaveBeenCalledWith(400);
+    expect(mockRes.json).toHaveBeenCalledWith({
+      error: "Invalid or missing transaction ID",
+    });
+  });
+
   it("returns 400 if softDeleteTransaction returns an error object", async () => {
     mockReq.params = { id: "123" };
     (softDeleteTransaction as jest.Mock).mockResolvedValue({
