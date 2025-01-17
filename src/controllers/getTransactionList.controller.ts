@@ -1,10 +1,9 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import { getTransactions } from "../services/databaseOperations.service";
 
 export const getTransactionList = async (
   req: Request,
-  res: Response,
-  next: NextFunction
+  res: Response
 ) => {
   try {
     const { page = 1, limit = 10 } = req.query;
@@ -33,6 +32,7 @@ export const getTransactionList = async (
       totalPages: Math.ceil(totalCount / limitNumber),
     });
   } catch (error) {
-    next(error);
+    console.error("Error fetching transactions:", error);
+    res.status(500).json({ error: "Internal server error: Failed to fetch transactions" });
   }
 };

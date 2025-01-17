@@ -7,6 +7,7 @@ export const saveTransactions = async (transactions: any[]) => {
     const result = await prisma.transaction.createMany({ data: transactions });
     return result;
   } catch (error) {
+    console.error("Error saving transactions:", error);
     throw error;
   }
 };
@@ -16,6 +17,7 @@ export const createTransaction = async (transaction: any) => {
     const result = await prisma.transaction.create({ data: transaction });
     return result;
   } catch (error) {
+    console.error("Error creating transaction:", error);
     throw error;
   }
 };
@@ -31,6 +33,7 @@ export const checkDuplicateTransaction = async (transaction: any) => {
     });
     return !!existingTransaction;
   } catch (error) {
+    console.error("Error checking duplicate transaction:", error);
     throw error;
   }
 };
@@ -81,6 +84,7 @@ export const getTransactions = async (page: number, limit: number) => {
 
     return { transactions, totalCount };
   } catch (error) {
+    console.error("Error fetching transactions:", error);
     throw error;
   }
 };
@@ -93,6 +97,7 @@ export const updateTransaction = async (id: number, transaction: any) => {
     });
     return result;
   } catch (error) {
+    console.error("Error updating transaction:", error);
     throw error;
   }
 };
@@ -127,7 +132,7 @@ export const getTransactionKeys = async (keys: string[]) => {
     return recordKeySet;
   } catch (error) {
     console.error("Error fetching transaction keys:", error);
-    return new Set();
+    throw error;
   }
 };
 

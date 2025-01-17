@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import {
   updateTransaction,
   checkDuplicateTransaction,
@@ -10,8 +10,7 @@ import { toLowerCase } from "../utils/toLowerCase";
 
 export const editTransaction = async (
   req: Request,
-  res: Response,
-  next: NextFunction
+  res: Response
 ) => {
   try {
     const { id } = req.params;
@@ -61,6 +60,7 @@ export const editTransaction = async (
     });
     return;
   } catch (error) {
-    next(error);
+    console.error("Error updating transaction:", error);
+    res.status(500).json({ error: "Internal server error: Failed to update transaction" });
   }
 };

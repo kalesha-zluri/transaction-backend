@@ -1,10 +1,9 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import { softDeleteTransaction } from "../services/databaseOperations.service";
 
 export const deleteTransaction = async (
   req: Request,
-  res: Response,
-  next: NextFunction
+  res: Response
 ) => {
   try {
     const { id } = req.params;
@@ -26,6 +25,7 @@ export const deleteTransaction = async (
       data: result,
     });
   } catch (error) {
-    next(error);
+    console.error("Error deleting transaction:", error);
+    res.status(500).json({ error: "Internal server error: Failed to delete transaction" });
   }
 };

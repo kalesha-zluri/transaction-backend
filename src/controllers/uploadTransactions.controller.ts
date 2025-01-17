@@ -1,10 +1,9 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import { saveTransactions } from "../services/databaseOperations.service";
 
 export const uploadTransactions = async (
   req: Request,
-  res: Response,
-  next: NextFunction
+  res: Response
 ) => {
   try {
     const transactions = req.body.transactions;
@@ -17,6 +16,7 @@ export const uploadTransactions = async (
       errors,
     });
   } catch (error) {
-    next(error);
+    console.error("Error saving transactions:", error);
+    res.status(500).json({ error: "Internal server error: Failed to upload transactions" });
   }
 };

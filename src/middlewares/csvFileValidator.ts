@@ -77,6 +77,9 @@ export const validateCSVUpload = async (
     next();
     return;
   } catch (error) {
-    next(error);
+    console.error("Error validating CSV file or parsing CSV file:", error);
+    res.status(500).json({
+      error: "Internal server error: Failed to validate or parse CSV file",
+    });
   }
 };

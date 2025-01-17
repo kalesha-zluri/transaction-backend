@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import { validate_transaction_schema } from "../utils/validateSchema";
 import {
   checkDuplicateTransaction,
@@ -9,8 +9,7 @@ import { toLowerCase } from "../utils/toLowerCase";
 
 export const addTransaction = async (
   req: Request,
-  res: Response,
-  next: NextFunction
+  res: Response
 ) => {
   try {
     const transaction: CSVRecord = req.body;
@@ -41,6 +40,7 @@ export const addTransaction = async (
     });
     return;
   } catch (error) {
-    next(error);
+    console.error("Error adding transaction:", error);
+    res.status(500).json({ error: "Internal server error: Failed to add transaction" });
   }
 };
