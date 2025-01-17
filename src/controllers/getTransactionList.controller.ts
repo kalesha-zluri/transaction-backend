@@ -15,6 +15,11 @@ export const getTransactionList = async (
       res.status(400).json({ error: "Invalid query parameters" });
       return;
     }
+    
+    if(limitNumber>100){
+      res.status(400).json({ error: "Limit should be less than 100" });
+      return;
+    }
 
     const { transactions, totalCount } = await getTransactions(
       pageNumber,

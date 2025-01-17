@@ -97,16 +97,25 @@ export const updateTransaction = async (id: number, transaction: any) => {
   }
 };
 
-export const getAllTransactionKeys = async () => {
+export const getTransactionKeys = async (keys: string[]) => {
   try {
-    // Fetch all records from the database with isDeleted = false
+    // Correctly split keys into date and description
+    const queryConditions = keys.map((key) => {
+      const parts = key.split("-");
+      const date = parts.slice(0, 3).join("-"); // Combine first three parts as date
+      const description = parts.slice(3).join("-"); // Combine the rest as description
+      return { date, description };
+    });
+
+    // Fetch records from the database
     const allRecords = await prisma.transaction.findMany({
       where: {
-        isDeleted: false, // Ensure only non-deleted records are fetched
+        isDeleted: false,
+        OR: queryConditions,
       },
       select: {
         date: true,
-        description: true, // Select only the required fields
+        description: true,
       },
     });
 
@@ -118,9 +127,10 @@ export const getAllTransactionKeys = async () => {
     return recordKeySet;
   } catch (error) {
     console.error("Error fetching transaction keys:", error);
-    return new Set(); // Return an empty set in case of errors
+    return new Set();
   }
 };
+
 
 export const getTransactionById = async (id: number) => {
   try {

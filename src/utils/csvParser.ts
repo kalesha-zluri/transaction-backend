@@ -1,11 +1,11 @@
 import { Readable } from "stream";
 import csvParser from "csv-parser";
 import { CSVRecord, ParserResult, CSVError } from "../types/csv.types";
-import { validateSchema, validateDataTypes } from "./validations";
+import { validate_transaction_schema } from "./validateSchema";
 
 const parseCSV = async (buffer: Buffer): Promise<ParserResult> => {
   const validRecords: CSVRecord[] = [];
-  const errors: CSVError[] = [];
+  const errorRecord: CSVError[] = [];
   let rowIndex = 0;
   const seenTransactions = new Set();
   const csvString = buffer.toString();
@@ -20,36 +20,25 @@ const parseCSV = async (buffer: Buffer): Promise<ParserResult> => {
         let isValid = true;
         const transformedData: CSVRecord = {};
 
-        // Transform keys to lowercase
+        // Transform keys and data to lowercase
         for (const key in data) {
           transformedData[key.toLowerCase()] = data[key].toLowerCase();
         }
-
-        // Validate schema
-        if (!validateSchema(transformedData)) {
-          errors.push({
-            row: rowIndex,
-            data: transformedData,
-            reason: "Missing required columns",
+        const { valid, errors } = validate_transaction_schema(transformedData);
+        if(!valid && errors){
+          const errorString = errors.join(", ");
+          errorRecord.push({
+            row:rowIndex,
+            data:transformedData,
+            reason: errorString
           });
-          isValid = false;
+          isValid=false;
         }
-
-        // Validate data types
-        if (isValid && !validateDataTypes(transformedData)) {
-          errors.push({
-            row: rowIndex,
-            data: transformedData,
-            reason:
-              "Invalid data types. Please check date format (DD-MM-YYYY), amount (numeric)",
-          });
-          isValid = false;
-        }
-
+        
         // Check for duplicates
         const transactionKey = `${transformedData.date}-${transformedData.description}`;
         if (isValid && seenTransactions.has(transactionKey)) {
-          errors.push({
+          errorRecord.push({
             row: rowIndex,
             data: transformedData,
             reason: "Duplicate transaction",
@@ -64,17 +53,17 @@ const parseCSV = async (buffer: Buffer): Promise<ParserResult> => {
       })
       .on("end", () => {
         if (validRecords.length === 0 && csvString.trim() === "") {
-          resolve({ data: [], errors, error: "CSV content is empty" });
+          resolve({ data: [], errorRecord, error: "CSV content is empty" });
         } else if (validRecords.length === 0 && csvString.trim() !== "") {
-          resolve({ data: [], errors, error: "No valid transactions found" });
+          resolve({ data: [], errorRecord, error: "No valid transactions found" });
         } else {
-          resolve({ data: validRecords, errors });
+          resolve({ data: validRecords, errorRecord });
         }
       })
       .on("error", (error) => {
         resolve({
           data: [],
-          errors,
+          errorRecord,
           error: `CSV parsing error: ${error.message}`,
         });
       });
