@@ -10,6 +10,6 @@ export interface CSVError {
 
 export interface ParserResult {
   data: CSVRecord[];
-  errors?: CSVError[];
+  errorRecord?: CSVError[];
   error?: string;
 }
