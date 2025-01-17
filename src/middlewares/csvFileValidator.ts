@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import parseCSV from "../utils/csvParser";
-import { getAllTransactionKeys } from "../services/databaseOperations.service";
+import { getTransactionKeys } from "../services/databaseOperations.service";
 
 export const validateCSVUpload = async (
   req: Request,
@@ -18,14 +18,25 @@ export const validateCSVUpload = async (
       res.status(400).json({ error: "Invalid file type" });
       return;
     }
+    // Check file size (less than 1MB)
+    const maxSize = 1 * 1024 * 1024; // 1MB in bytes
+    if (file.size > maxSize) {
+      res.status(400).json({ error: "File size exceeds 1MB" });
+      return;
+    }
     const transactions = await parseCSV(file.buffer);
     // Check for empty file or no valid transactions
     if (transactions.error) {
       res.status(400).json({ error: transactions.error });
       return;
     }
+    // Collect keys for batch query
+    const keys = transactions.data.map(
+      (record) => `${record.date}-${record.description}`
+    );
+
     // Single DB call to find existing transactions
-    const existingKeys = await getAllTransactionKeys();
+    const existingKeys = await getTransactionKeys(keys);
     const finalRecords = [];
     const dbErrors = [];
     // Check each record against database duplicates
@@ -43,7 +54,7 @@ export const validateCSVUpload = async (
       }
     }
     // If CSV parser encountered validation errors or DB duplicates
-    const allErrors = [...(transactions.errors || []), ...dbErrors];
+    const allErrors = [...(transactions.errorRecord || []), ...dbErrors];
     if (allErrors.length > 0) {
       if (!ignoreDuplicates) {
         res.status(400).json({
@@ -61,8 +72,8 @@ export const validateCSVUpload = async (
     }
 
     // If no errors
-    req.body.transactions = transactions.data;
-    req.body.errors = transactions.errors;
+    req.body.transactions = finalRecords;
+    req.body.errors = allErrors;
     next();
     return;
   } catch (error) {
