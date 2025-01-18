@@ -4,7 +4,7 @@ export interface CSVRecord {
 
 export interface CSVError {
   row: number;
-  data: CSVRecord;
+  transaction_data: CSVRecord;
   reason: string;
 }
 

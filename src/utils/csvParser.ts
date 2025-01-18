@@ -29,7 +29,7 @@ const parseCSV = async (buffer: Buffer): Promise<ParserResult> => {
           const errorString = errors.join(", ");
           errorRecord.push({
             row:rowIndex,
-            data:transformedData,
+            transaction_data:transformedData,
             reason: errorString
           });
           isValid=false;
@@ -40,7 +40,7 @@ const parseCSV = async (buffer: Buffer): Promise<ParserResult> => {
         if (isValid && seenTransactions.has(transactionKey)) {
           errorRecord.push({
             row: rowIndex,
-            data: transformedData,
+            transaction_data: transformedData,
             reason: "Duplicate transaction",
           });
           isValid = false;

@@ -9,7 +9,6 @@ export const validateCSVUpload = async (
 ) => {
   try {
     const file = req.file;
-    const ignoreDuplicates = req.body.ignoreDuplicates === "true";
     if (!file) {
       res.status(400).json({ error: "File is required" });
       return;
@@ -46,7 +45,7 @@ export const validateCSVUpload = async (
       if (existingKeys.has(key)) {
         dbErrors.push({
           row: "NA",
-          data: record,
+          transaction_data: record,
           reason: "Duplicate in database",
         });
       } else {
@@ -56,24 +55,15 @@ export const validateCSVUpload = async (
     // If CSV parser encountered validation errors or DB duplicates
     const allErrors = [...(transactions.errorRecord || []), ...dbErrors];
     if (allErrors.length > 0) {
-      if (!ignoreDuplicates) {
-        res.status(400).json({
-          error: "Validation errors found",
-          details: allErrors,
-        });
-        return;
-      } else {
-        // If ignoreDuplicates is true, we only keep valid CSV records
-        req.body.transactions = finalRecords;
-        req.body.errors = allErrors;
-        next();
-        return;
-      }
+      res.status(400).json({
+        error: "Upload failed! Validation errors found",
+        data: allErrors,
+      });
+      return;
     }
 
     // If no errors
     req.body.transactions = finalRecords;
-    req.body.errors = allErrors;
     next();
     return;
   } catch (error) {
