@@ -16,10 +16,12 @@ datasource db {
 model Transaction {
   id          Int      @id @default(autoincrement())
   date        String
+  dateTime    DateTime
   description String
   amount      String
   currency    String
   isDeleted   Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  @@index([dateTime(sort: Desc)])
 }

@@ -4,7 +4,16 @@ const prisma = new PrismaClient();
 
 export const saveTransactions = async (transactions: any[]) => {
   try {
-    const result = await prisma.transaction.createMany({ data: transactions });
+    const transformedData = transactions.map((transaction) => {
+      const [day, month, year] = transaction.date.split("-");
+      return {
+        ...transaction,
+        dateTime: new Date(Number(year), Number(month) - 1, Number(day)),
+      };
+    });
+    const result = await prisma.transaction.createMany({
+      data: transformedData,
+    });
     return result;
   } catch (error) {
     console.error("Error saving transactions:", error);
@@ -14,7 +23,15 @@ export const saveTransactions = async (transactions: any[]) => {
 
 export const createTransaction = async (transaction: any) => {
   try {
-    const result = await prisma.transaction.create({ data: transaction });
+    const [day, month, year] = transaction.date.split("-");
+    const dateTime = new Date(Number(year), Number(month) - 1, Number(day));
+
+    const result = await prisma.transaction.create({
+      data: {
+        ...transaction,
+        dateTime,
+      },
+    });
     return result;
   } catch (error) {
     console.error("Error creating transaction:", error);
@@ -73,7 +90,7 @@ export const getTransactions = async (page: number, limit: number) => {
     const [transactions, totalCount] = await Promise.all([
       prisma.transaction.findMany({
         where: { isDeleted: false },
-        orderBy: { date: "desc" },
+        orderBy: {dateTime: 'desc'},
         skip,
         take: limit,
       }),
