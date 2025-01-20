@@ -20,6 +20,7 @@ model Transaction {
   description String
   amount      String
   currency    String
+  amountInr   Float
   isDeleted   Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

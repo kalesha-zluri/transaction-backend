@@ -1,16 +1,27 @@
 import { PrismaClient } from "@prisma/client";
+import { getExchangeRate } from "../utils/exchangeRate";
 
 const prisma = new PrismaClient();
 
 export const saveTransactions = async (transactions: any[]) => {
   try {
-    const transformedData = transactions.map((transaction) => {
-      const [day, month, year] = transaction.date.split("-");
-      return {
-        ...transaction,
-        dateTime: new Date(Number(year), Number(month) - 1, Number(day)),
-      };
-    });
+    const transformedData = await Promise.all(
+      transactions.map(async (transaction) => {
+        const [day, month, year] = transaction.date.split("-");
+        const exchangeRate = await getExchangeRate(
+          transaction.date,
+          transaction.currency
+        );
+        const amountInr = parseFloat(transaction.amount) * exchangeRate;
+
+        return {
+          ...transaction,
+          dateTime: new Date(Number(year), Number(month) - 1, Number(day)),
+          amountInr,
+        };
+      })
+    );
+
     const result = await prisma.transaction.createMany({
       data: transformedData,
     });
@@ -26,10 +37,18 @@ export const createTransaction = async (transaction: any) => {
     const [day, month, year] = transaction.date.split("-");
     const dateTime = new Date(Number(year), Number(month) - 1, Number(day));
 
+    // Get exchange rate and calculate INR amount
+    const exchangeRate = await getExchangeRate(
+      transaction.date,
+      transaction.currency
+    );
+    const amountInr = parseFloat(transaction.amount) * exchangeRate;
+
     const result = await prisma.transaction.create({
       data: {
         ...transaction,
         dateTime,
+        amountInr
       },
     });
     return result;
@@ -108,9 +127,22 @@ export const getTransactions = async (page: number, limit: number) => {
 
 export const updateTransaction = async (id: number, transaction: any) => {
   try {
+    const [day, month, year] = transaction.date.split("-");
+    const dateTime = new Date(Number(year), Number(month) - 1, Number(day));
+
+    // Get exchange rate and calculate INR amount
+    const exchangeRate = await getExchangeRate(
+      transaction.date,
+      transaction.currency
+    );
+    const amountInr = parseFloat(transaction.amount) * exchangeRate;
     const result = await prisma.transaction.update({
       where: { id },
-      data: transaction,
+      data: {
+        ...transaction,
+        dateTime,
+        amountInr,
+      },
     });
     return result;
   } catch (error) {
