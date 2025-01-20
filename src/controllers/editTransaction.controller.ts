@@ -23,6 +23,7 @@ export const editTransaction = async (
     }
     // Check if the transaction exists and is not deleted
     const existingTransaction = await getTransactionById(parseInt(id));
+    
     if (!existingTransaction) {
       res.status(404).json({ error: "Transaction not found" });
       return;
@@ -44,7 +45,7 @@ export const editTransaction = async (
       return;
     }
 
-    const isDuplicate = await checkDuplicateTransaction(transformedData);
+    const isDuplicate = await checkDuplicateTransaction(transformedData, parsedId);
     if (isDuplicate) {
       res.status(400).json({ error: "Duplicate transaction found" });
       return;

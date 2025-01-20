@@ -58,13 +58,14 @@ export const createTransaction = async (transaction: any) => {
   }
 };
 
-export const checkDuplicateTransaction = async (transaction: any) => {
+export const checkDuplicateTransaction = async (transaction: any, transactionId?: number) => {
   try {
     const existingTransaction = await prisma.transaction.findFirst({
       where: {
         date: transaction.date,
         description: transaction.description,
         isDeleted: false,
+        NOT: transactionId ? {id:transactionId} : undefined
       },
     });
     return !!existingTransaction;
