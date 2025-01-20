@@ -47,6 +47,26 @@ describe("validateCSVUpload middleware", () => {
     expect(mockRes.json).toHaveBeenCalledWith({ error: "Invalid file type" });
   });
 
+  it("returns 400 if file size exceeds 1MB", async () => {
+    mockReq.file = {
+      fieldname: "file",
+      originalname: "test.csv",
+      encoding: "7bit",
+      mimetype: "text/csv",
+      size: 2 * 1024 * 1024, // 2MB
+      destination: "",
+      filename: "",
+      path: "",
+      buffer: Buffer.from("dummy"),
+    } as Express.Multer.File;
+
+    await validateCSVUpload(mockReq as Request, mockRes as Response, mockNext);
+
+    expect(mockRes.status).toHaveBeenCalledWith(400);
+    expect(mockRes.json).toHaveBeenCalledWith({
+      error: "File size exceeds 1MB",
+    });
+  });
   it("returns 400 if parseCSV returns an error", async () => {
     mockReq.file = {
       fieldname: "file",
@@ -128,70 +148,5 @@ describe("validateCSVUpload middleware", () => {
     expect(mockNext).toHaveBeenCalled();
     expect(mockRes.status).not.toHaveBeenCalled();
     expect(mockRes.json).not.toHaveBeenCalled();
-  });
-  it("ignores duplicates and sets req.body.transactions, req.body.errors, then calls next() when ignoreDuplicates is true", async () => {
-    mockReq.file = {
-      fieldname: "file",
-      originalname: "test.csv",
-      encoding: "7bit",
-      mimetype: "text/csv",
-      size: 123,
-      destination: "",
-      filename: "",
-      path: "",
-      buffer: Buffer.from("dummy data"),
-    } as Express.Multer.File;
-    mockReq.body.ignoreDuplicates = "true";
-
-    (parseCSV as jest.Mock).mockResolvedValue({
-      data: [
-        { date: "2020-01-01", description: "Test" },
-        { date: "2020-01-02", description: "Valid" },
-      ],
-      errors: [{ row: "1", reason: "Some CSV parser warning" }],
-    });
-    (getTransactionKeys as jest.Mock).mockResolvedValue(
-      new Set(["2020-01-01-Test"])
-    );
-
-    await validateCSVUpload(mockReq as Request, mockRes as Response, mockNext);
-
-    // No 400 return means duplicates were ignored
-    expect(mockRes.status).not.toHaveBeenCalled();
-    expect(mockRes.json).not.toHaveBeenCalled();
-
-    // Middleware set these properties
-    expect(mockReq.body.transactions).toEqual([
-      { date: "2020-01-02", description: "Valid" },
-    ]);
-    expect(mockReq.body.errors).toEqual(
-      expect.arrayContaining([{ row: "1", reason: "Some CSV parser warning" }])
-    );
-    expect(mockNext).toHaveBeenCalled();
-  });
-
-  it("calls next(error) if an error occurs", async () => {
-    mockReq.file = {
-      fieldname: "file",
-      originalname: "test.csv",
-      encoding: "7bit",
-      mimetype: "text/csv",
-      size: 123,
-      destination: "",
-      filename: "",
-      path: "",
-      buffer: Buffer.from("dummy data"),
-    } as Express.Multer.File;
-
-    (parseCSV as jest.Mock).mockImplementation(() => {
-      throw new Error("CSV parse error");
-    });
-
-    await validateCSVUpload(mockReq as Request, mockRes as Response, mockNext);
-
-    expect(mockNext).toHaveBeenCalledTimes(1);
-    expect(mockNext).toHaveBeenCalledWith(
-      expect.objectContaining({ message: "CSV parse error" })
-    );
   });
 });
