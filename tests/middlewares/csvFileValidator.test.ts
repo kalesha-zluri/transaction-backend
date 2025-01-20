@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { validateCSVUpload } from "../../src/middlewares/csvFileValidator";
 import parseCSV from "../../src/utils/csvParser";
-import { getAllTransactionKeys } from "../../src/services/databaseOperations.service";
+import { getTransactionKeys } from "../../src/services/databaseOperations.service";
 
 jest.mock("../../src/utils/csvParser");
 jest.mock("../../src/services/databaseOperations.service");
@@ -87,7 +87,7 @@ describe("validateCSVUpload middleware", () => {
       data: [{ date: "2020-01-01", description: "Test" }],
       errors: [],
     });
-    (getAllTransactionKeys as jest.Mock).mockResolvedValue(
+    (getTransactionKeys as jest.Mock).mockResolvedValue(
       new Set(["2020-01-01-Test"])
     );
 
@@ -95,17 +95,14 @@ describe("validateCSVUpload middleware", () => {
 
     expect(mockRes.status).toHaveBeenCalledWith(400);
     expect(mockRes.json).toHaveBeenCalledWith({
-      error: "Validation errors found",
-      details: [
+      error: "Upload failed! Validation errors found",
+      data: [
         {
-          "data":{
-            "date": "2020-01-01",
-            "description": "Test"
-          },
-          "reason":"Duplicate in database",
-          "row":"NA",
-        }
-      ]
+          row: "NA",
+          transaction_data: { date: "2020-01-01", description: "Test" },
+          reason: "Duplicate in database",
+        },
+      ],
     });
   });
 
@@ -125,7 +122,7 @@ describe("validateCSVUpload middleware", () => {
       data: [{ date: "2020-01-01", description: "Clean" }],
       errors: [],
     });
-    (getAllTransactionKeys as jest.Mock).mockResolvedValue(new Set());
+    (getTransactionKeys as jest.Mock).mockResolvedValue(new Set());
 
     await validateCSVUpload(mockReq as Request, mockRes as Response, mockNext);
     expect(mockNext).toHaveBeenCalled();
@@ -153,7 +150,7 @@ describe("validateCSVUpload middleware", () => {
       ],
       errors: [{ row: "1", reason: "Some CSV parser warning" }],
     });
-    (getAllTransactionKeys as jest.Mock).mockResolvedValue(
+    (getTransactionKeys as jest.Mock).mockResolvedValue(
       new Set(["2020-01-01-Test"])
     );
 

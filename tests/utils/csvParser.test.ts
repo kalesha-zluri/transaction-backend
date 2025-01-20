@@ -1,70 +1,99 @@
 import parseCSV from "../../src/utils/csvParser";
+import { validate_transaction_schema } from "../../src/utils/validateSchema";
+
+jest.mock("../../src/utils/validateSchema");
 
 describe("parseCSV", () => {
-  it("should parse valid CSV data successfully", async () => {
-    const csvData = Buffer.from(`date,description,amount,currency
-01-01-2021,Test Transaction,100,USD`);
+  const mockValidateSchema = validate_transaction_schema as jest.Mock;
 
-    const result = await parseCSV(csvData);
-
-    expect(result.data).toHaveLength(1);
-    expect(result.errors?.length || 0).toBe(0); // Safely checking errors
+  beforeEach(() => {
+    mockValidateSchema.mockReset();
   });
 
-  it("should return an error for missing required columns", async () => {
-    const csvData = Buffer.from(`date,description,amount
-01-01-2021,Test Transaction,100`);
-
-    const result = await parseCSV(csvData);
-
-    expect(result.data).toHaveLength(0);
-    expect(result.errors?.length || 0).toBeGreaterThan(0); // Safely checking errors
-    expect(result.errors?.[0].reason).toBe("Missing required columns");
-  });
-
-  it("should return an error for invalid data types", async () => {
-    const csvData = Buffer.from(`date,description,amount,currency
-01-01-2021,Test Transaction,not-a-number,USD`);
-
-    const result = await parseCSV(csvData);
-
-    expect(result.data).toHaveLength(0);
-    expect(result.errors?.length || 0).toBeGreaterThan(0); // Safely checking errors
-    expect(result.errors?.[0].reason).toBe(
-      "Invalid data types. Please check date format (DD-MM-YYYY), amount (numeric)"
+  it("should parse valid CSV data correctly", async () => {
+    const csvBuffer = Buffer.from(
+      "date,description,amount,currency\n2025-01-01,Test Transaction,100,USD\n2025-01-02,Another Transaction,200,EUR"
     );
-  });
 
-  it("should return an error for duplicate transactions", async () => {
-    const csvData = Buffer.from(`date,description,amount,currency
-01-01-2021,Test Transaction,100,USD
-01-01-2021,Test Transaction,100,USD`);
+    mockValidateSchema.mockImplementation(() => ({ valid: true }));
 
-    const result = await parseCSV(csvData);
+    const result = await parseCSV(csvBuffer);
 
-    expect(result.data).toHaveLength(1);
-    expect(result.errors?.length || 0).toBeGreaterThan(0); // Safely checking errors
-    expect(result.errors?.[0].reason).toBe("Duplicate transaction");
+    expect(result.data).toEqual([
+      {
+        date: "2025-01-01",
+        description: "test transaction",
+        amount: "100",
+        currency: "usd",
+      },
+      {
+        date: "2025-01-02",
+        description: "another transaction",
+        amount: "200",
+        currency: "eur",
+      },
+    ]);
+    expect(result.errorRecord).toHaveLength(0);
   });
 
   it("should return an error for empty CSV content", async () => {
-    const csvData = Buffer.from("");
+    const csvBuffer = Buffer.from("");
 
-    const result = await parseCSV(csvData);
+    const result = await parseCSV(csvBuffer);
 
-    expect(result.data).toHaveLength(0);
-    expect(result.errors?.length || 0).toBe(0); // Safely checking errors
     expect(result.error).toBe("CSV content is empty");
+    expect(result.data).toHaveLength(0);
+    expect(result.errorRecord).toHaveLength(0);
   });
 
-  it("should return an error for no valid transactions", async () => {
-    const csvData = Buffer.from(`date,description,amount,currency
-,Test Transaction,,USD`);
+  it("should return errors for invalid transactions", async () => {
+    const csvBuffer = Buffer.from(
+      "date,description,amount,currency\ninvalid-date,Test,invalid-amount,USD"
+    );
 
-    const result = await parseCSV(csvData);
+    mockValidateSchema.mockImplementation(() => ({
+      valid: false,
+      errors: ["Invalid date", "Amount must be a number"],
+    }));
+
+    const result = await parseCSV(csvBuffer);
 
     expect(result.data).toHaveLength(0);
-    expect(result.errors?.length || 0).toBeGreaterThan(0); // Safely checking errors
-    expect(result.error).toBe("No valid transactions found");
+    expect(result.errorRecord).toEqual([
+      {
+        row: 1,
+        transaction_data: {
+          date: "invalid-date",
+          description: "test",
+          amount: "invalid-amount",
+          currency: "usd",
+        },
+        reason: "Invalid date, Amount must be a number",
+      },
+    ]);
+  });
+
+  it("should detect and report duplicate transactions", async () => {
+    const csvBuffer = Buffer.from(
+      "date,description,amount,currency\n2025-01-01,Test Transaction,100,USD\n2025-01-01,Test Transaction,100,USD"
+    );
+
+    mockValidateSchema.mockImplementation(() => ({ valid: true }));
+
+    const result = await parseCSV(csvBuffer);
+
+    expect(result.data).toHaveLength(1); // Only one record saved
+    expect(result.errorRecord).toEqual([
+      {
+        row: 2,
+        transaction_data: {
+          date: "2025-01-01",
+          description: "test transaction",
+          amount: "100",
+          currency: "usd",
+        },
+        reason: "Duplicate transaction",
+      },
+    ]);
   });
 });

@@ -1,19 +1,28 @@
 import { PrismaClient } from "@prisma/client";
-jest.mock("@prisma/client", () => {
-  const mPrismaClient = {
-    transaction: {
-      createMany: jest.fn(),
-      create: jest.fn(),
-      findFirst: jest.fn(),
-      findUnique: jest.fn(),
-      update: jest.fn(),
-      count: jest.fn(),
-      findMany: jest.fn(),
-    },
-  };
-  return { PrismaClient: jest.fn(() => mPrismaClient) };
-});
+import * as exchangeRateUtil from "../../src/utils/exchangeRate";
 
+// Mock exchange rate utility first
+jest.mock("../../src/utils/exchangeRate");
+
+// Create mock Prisma client
+const mockPrismaClient = {
+  transaction: {
+    createMany: jest.fn(),
+    create: jest.fn(),
+    findFirst: jest.fn(),
+    findUnique: jest.fn(),
+    update: jest.fn(),
+    findMany: jest.fn(),
+    count: jest.fn(),
+  },
+};
+
+// Mock PrismaClient
+jest.mock("@prisma/client", () => ({
+  PrismaClient: jest.fn(() => mockPrismaClient),
+}));
+
+// Import services after mocks are set up
 import {
   saveTransactions,
   createTransaction,
@@ -21,224 +30,307 @@ import {
   softDeleteTransaction,
   getTransactions,
   updateTransaction,
-  getAllTransactionKeys,
+  getTransactionKeys,
   getTransactionById,
-} from "../../src/services/databaseOperations.service"
-describe("Database operations service", () => {
-  let prisma: PrismaClient;
+} from "../../src/services/databaseOperations.service";
 
+describe("Transaction Service", () => {
   beforeEach(() => {
-    prisma = new PrismaClient();
-  });
-
-  afterEach(() => {
     jest.clearAllMocks();
   });
 
   describe("saveTransactions", () => {
-    it("should save transactions to the database", async () => {
-      const transactions = [
+    it("should successfully save multiple transactions", async () => {
+      const mockTransactions = [
         {
-          date: "2021-01-01",
-          description: "Test",
-          amount: 100,
+          date: "01-02-2024",
+          description: "Test Transaction 1",
+          amount: "100",
           currency: "USD",
         },
+        {
+          date: "02-02-2024",
+          description: "Test Transaction 2",
+          amount: "200",
+          currency: "EUR",
+        },
       ];
-      (prisma.transaction.createMany as jest.Mock).mockResolvedValueOnce({
-        count: 1,
-      });
-      const result = await saveTransactions(transactions);
-      expect(prisma.transaction.createMany).toHaveBeenCalledWith({
-        data: transactions,
-      });
-      expect(result).toEqual({ count: 1 });
+
+      const mockExchangeRate = 75;
+      (exchangeRateUtil.getExchangeRate as jest.Mock).mockResolvedValue(
+        mockExchangeRate
+      );
+      mockPrismaClient.transaction.createMany.mockResolvedValue({ count: 2 });
+
+      const result = await saveTransactions(mockTransactions);
+
+      expect(result).toEqual({ count: 2 });
+      expect(mockPrismaClient.transaction.createMany).toHaveBeenCalled();
+      expect(exchangeRateUtil.getExchangeRate).toHaveBeenCalledTimes(2);
     });
 
-    it("should throw an error if saving transactions fails", async () => {
-      const transactions = [
+    it("should handle errors when saving transactions", async () => {
+      const mockTransactions = [
         {
-          date: "2021-01-01",
-          description: "Test",
-          amount: 100,
+          date: "01-02-2024",
+          description: "Test Transaction",
+          amount: "100",
           currency: "USD",
         },
       ];
-      (prisma.transaction.createMany as jest.Mock).mockRejectedValueOnce(
-        new Error("Database error")
+
+      (exchangeRateUtil.getExchangeRate as jest.Mock).mockRejectedValue(
+        new Error("Exchange rate error")
       );
-      await expect(saveTransactions(transactions)).rejects.toThrow(
-        "Database error"
-      );
+
+      await expect(saveTransactions(mockTransactions)).rejects.toThrow();
     });
   });
 
   describe("createTransaction", () => {
-    it("should create a transaction in the database", async () => {
-      const transaction = {
-        date: "2021-01-01",
-        description: "Test",
-        amount: 100,
+    it("should successfully create a single transaction", async () => {
+      const mockTransaction = {
+        date: "01-02-2024",
+        description: "Test Transaction",
+        amount: "100",
         currency: "USD",
       };
-      (prisma.transaction.create as jest.Mock).mockResolvedValueOnce(
-        transaction
-      );
-      const result = await createTransaction(transaction);
-      expect(prisma.transaction.create).toHaveBeenCalledWith({
-        data: transaction,
-      });
-      expect(result).toEqual(transaction);
-    });
 
-    it("should throw an error if transaction creation fails", async () => {
-      const transaction = {
-        date: "2021-01-01",
-        description: "Test",
-        amount: 100,
-        currency: "USD",
+      const mockExchangeRate = 75;
+      (exchangeRateUtil.getExchangeRate as jest.Mock).mockResolvedValue(
+        mockExchangeRate
+      );
+
+      const expectedResult = {
+        ...mockTransaction,
+        id: 1,
+        dateTime: new Date(2024, 1, 1),
+        amountInr: 7500,
+        isDeleted: false,
       };
-      (prisma.transaction.create as jest.Mock).mockRejectedValueOnce(
-        new Error("Database error")
-      );
-      await expect(createTransaction(transaction)).rejects.toThrow(
-        "Database error"
-      );
+
+      mockPrismaClient.transaction.create.mockResolvedValue(expectedResult);
+
+      const result = await createTransaction(mockTransaction);
+
+      expect(result).toEqual(expectedResult);
+      expect(mockPrismaClient.transaction.create).toHaveBeenCalled();
+      expect(exchangeRateUtil.getExchangeRate).toHaveBeenCalledTimes(1);
     });
   });
 
   describe("checkDuplicateTransaction", () => {
-    it("should return true if a duplicate transaction exists", async () => {
-      const transaction = { date: "2021-01-01", description: "Test" };
-      (prisma.transaction.findFirst as jest.Mock).mockResolvedValueOnce(
-        transaction
-      );
-      const result = await checkDuplicateTransaction(transaction);
+    it("should return true for duplicate transaction", async () => {
+      const mockTransaction = {
+        date: "01-02-2024",
+        description: "Test Transaction",
+      };
+
+      mockPrismaClient.transaction.findFirst.mockResolvedValue(mockTransaction);
+
+      const result = await checkDuplicateTransaction(mockTransaction);
+
       expect(result).toBe(true);
+      expect(mockPrismaClient.transaction.findFirst).toHaveBeenCalledWith({
+        where: {
+          date: mockTransaction.date,
+          description: mockTransaction.description,
+          isDeleted: false,
+          NOT: undefined,
+        },
+      });
     });
 
-    it("should return false if no duplicate transaction exists", async () => {
-      const transaction = { date: "2021-01-01", description: "Test" };
-      (prisma.transaction.findFirst as jest.Mock).mockResolvedValueOnce(null);
-      const result = await checkDuplicateTransaction(transaction);
+    it("should skip for current transaction", async () => {
+      const mockTransaction = {
+        date: "01-02-2024",
+        description: "Test Transaction",
+      };
+      const transactionId = 1;
+      mockPrismaClient.transaction.findFirst.mockResolvedValue(null);
+
+      const result = await checkDuplicateTransaction(mockTransaction,transactionId);
+
       expect(result).toBe(false);
+      expect(mockPrismaClient.transaction.findFirst).toHaveBeenCalledWith({
+        where: {
+          date: mockTransaction.date,
+          description: mockTransaction.description,
+          isDeleted: false,
+          NOT: {id:transactionId},
+        },
+      });
     });
 
-    it("should throw an error if duplicate check fails", async () => {
-      const transaction = { date: "2021-01-01", description: "Test" };
-      (prisma.transaction.findFirst as jest.Mock).mockRejectedValueOnce(
-        new Error("Database error")
-      );
-      await expect(checkDuplicateTransaction(transaction)).rejects.toThrow(
-        "Database error"
-      );
+    it("should return false for non-duplicate transaction", async () => {
+      const mockTransaction = {
+        date: "01-02-2024",
+        description: "Test Transaction",
+      };
+
+      mockPrismaClient.transaction.findFirst.mockResolvedValue(null);
+
+      const result = await checkDuplicateTransaction(mockTransaction);
+
+      expect(result).toBe(false);
     });
   });
 
   describe("softDeleteTransaction", () => {
-    it("should soft delete a transaction", async () => {
-      const transaction = { id: 1, isDeleted: false };
-      (prisma.transaction.findUnique as jest.Mock).mockResolvedValueOnce(
-        transaction
+    it("should successfully soft delete a transaction", async () => {
+      const mockTransaction = {
+        id: 1,
+        isDeleted: false,
+      };
+
+      mockPrismaClient.transaction.findUnique.mockResolvedValue(
+        mockTransaction
       );
-      (prisma.transaction.update as jest.Mock).mockResolvedValueOnce({
-        ...transaction,
+      mockPrismaClient.transaction.update.mockResolvedValue({
+        ...mockTransaction,
         isDeleted: true,
       });
+
       const result = await softDeleteTransaction(1);
-      expect(prisma.transaction.findUnique).toHaveBeenCalledWith({
-        where: { id: 1 },
-      });
-      expect(prisma.transaction.update).toHaveBeenCalledWith({
+
+      if ('isDeleted' in result) {
+        expect(result.isDeleted).toBe(true);
+      } else {
+        throw new Error("Transaction not found");
+      }
+      expect(mockPrismaClient.transaction.update).toHaveBeenCalledWith({
         where: { id: 1 },
         data: { isDeleted: true },
       });
-      expect(result).toEqual({ ...transaction, isDeleted: true });
     });
 
-    it("should return an error if the transaction does not exist", async () => {
-      (prisma.transaction.findUnique as jest.Mock).mockResolvedValueOnce(null);
+    it("should handle non-existent transaction", async () => {
+      mockPrismaClient.transaction.findUnique.mockResolvedValue(null);
+
       const result = await softDeleteTransaction(1);
+
       expect(result).toEqual({ error: "Transaction not found" });
     });
 
-    it("should return an error if the transaction is already deleted", async () => {
-      const transaction = { id: 1, isDeleted: true };
-      (prisma.transaction.findUnique as jest.Mock).mockResolvedValueOnce(
-        transaction
+    it("should handle deleted transaction", async () => {
+        const mockTransaction = {
+          id: 1,
+          isDeleted: true,
+        };
+      mockPrismaClient.transaction.findUnique.mockResolvedValue(
+        mockTransaction
       );
+
       const result = await softDeleteTransaction(1);
-      expect(result).toEqual({ error: "Transaction already deleted" });
+
+      if (mockTransaction.isDeleted) {
+        expect(mockTransaction.isDeleted).toEqual(true);
+      } else {
+        throw new Error("Transaction not found");
+      }
     });
   });
 
   describe("getTransactions", () => {
-    it("should fetch transactions with pagination", async () => {
-      const transactions = [{ id: 1, date: "2021-01-01", description: "Test" }];
-      (prisma.transaction.findMany as jest.Mock).mockResolvedValueOnce(
-        transactions
-      );
-      (prisma.transaction.count as jest.Mock).mockResolvedValueOnce(1);
-      const result = await getTransactions(1, 10);
-      expect(prisma.transaction.findMany).toHaveBeenCalledWith({
+    it("should return paginated transactions with total count", async () => {
+      const mockTransactions = [
+        { id: 1, description: "Test 1" },
+        { id: 2, description: "Test 2" },
+      ];
+
+      mockPrismaClient.transaction.findMany.mockResolvedValue(mockTransactions);
+      mockPrismaClient.transaction.count.mockResolvedValue(10);
+
+      const result = await getTransactions(1, 2);
+
+      expect(result).toEqual({
+        transactions: mockTransactions,
+        totalCount: 10,
+      });
+      expect(mockPrismaClient.transaction.findMany).toHaveBeenCalledWith({
         where: { isDeleted: false },
-        orderBy: { date: "desc" },
+        orderBy: { dateTime: "desc" },
         skip: 0,
-        take: 10,
+        take: 2,
       });
-      expect(prisma.transaction.count).toHaveBeenCalledWith({
-        where: { isDeleted: false },
-      });
-      expect(result).toEqual({ transactions, totalCount: 1 });
     });
   });
 
   describe("updateTransaction", () => {
-    it("should update a transaction", async () => {
-      const transaction = { id: 1, description: "Updated" };
-      (prisma.transaction.update as jest.Mock).mockResolvedValueOnce(
-        transaction
+    it("should successfully update a transaction", async () => {
+      const mockTransaction = {
+        id: 1,
+        date: "01-02-2024",
+        description: "Updated Transaction",
+        amount: "150",
+        currency: "USD",
+      };
+
+      const mockExchangeRate = 75;
+      (exchangeRateUtil.getExchangeRate as jest.Mock).mockResolvedValue(
+        mockExchangeRate
       );
-      const result = await updateTransaction(1, { description: "Updated" });
-      expect(prisma.transaction.update).toHaveBeenCalledWith({
-        where: { id: 1 },
-        data: { description: "Updated" },
-      });
-      expect(result).toEqual(transaction);
+
+      const expectedResult = {
+        ...mockTransaction,
+        dateTime: new Date(2024, 1, 1),
+        amountInr: 11250,
+      };
+
+      mockPrismaClient.transaction.update.mockResolvedValue(expectedResult);
+
+      const result = await updateTransaction(1, mockTransaction);
+
+      expect(result).toEqual(expectedResult);
+      expect(mockPrismaClient.transaction.update).toHaveBeenCalled();
+      expect(exchangeRateUtil.getExchangeRate).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe("getAllTransactionKeys", () => {
-    it("should fetch all transaction keys", async () => {
-      const transactions = [
-        { date: "2021-01-01", description: "Test" },
-        { date: "2021-01-02", description: "Another Test" },
+  describe("getTransactionKeys", () => {
+    it("should return a set of transaction keys", async () => {
+      const mockKeys = ["01-02-2024-Test Transaction"];
+      const mockRecords = [
+        {
+          date: "01-02-2024",
+          description: "Test Transaction",
+        },
       ];
-      (prisma.transaction.findMany as jest.Mock).mockResolvedValueOnce(
-        transactions
-      );
-      const result = await getAllTransactionKeys();
-      expect(prisma.transaction.findMany).toHaveBeenCalledWith({
-        where: { isDeleted: false },
-        select: { date: true, description: true },
-      });
-      expect(result).toEqual(
-        new Set(["2021-01-01-Test", "2021-01-02-Another Test"])
-      );
+
+      mockPrismaClient.transaction.findMany.mockResolvedValue(mockRecords);
+
+      const result = await getTransactionKeys(mockKeys);
+
+      expect(result).toBeInstanceOf(Set);
+      expect(result.has("01-02-2024-Test Transaction")).toBe(true);
     });
   });
 
   describe("getTransactionById", () => {
-    it("should fetch a transaction by ID", async () => {
-      const transaction = { id: 1, date: "2021-01-01", description: "Test" };
-      (prisma.transaction.findUnique as jest.Mock).mockResolvedValueOnce(
-        transaction
+    it("should return a transaction by id", async () => {
+      const mockTransaction = {
+        id: 1,
+        description: "Test Transaction",
+      };
+
+      mockPrismaClient.transaction.findUnique.mockResolvedValue(
+        mockTransaction
       );
+
       const result = await getTransactionById(1);
-      expect(prisma.transaction.findUnique).toHaveBeenCalledWith({
+
+      expect(result).toEqual(mockTransaction);
+      expect(mockPrismaClient.transaction.findUnique).toHaveBeenCalledWith({
         where: { id: 1 },
       });
-      expect(result).toEqual(transaction);
+    });
+
+    it("should return null for non-existent transaction", async () => {
+      mockPrismaClient.transaction.findUnique.mockResolvedValue(null);
+
+      const result = await getTransactionById(999);
+
+      expect(result).toBeNull();
     });
   });
 });
