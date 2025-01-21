@@ -198,3 +198,32 @@ export const getTransactionById = async (id: number) => {
     throw error;
   }
 };
+
+export const softDeleteMany = async (ids: number[]) => {
+  try {
+    // Check if the transactions exist and are not already deleted
+    const transactions = await prisma.transaction.findMany({
+      where: {
+        id: { in: ids },
+        isDeleted: false,
+      },
+    });
+
+    if (transactions.length !== ids.length) {
+      return { error: "Some transactions not found or already deleted" };
+    }
+
+    // Soft delete the transactions
+    const deletedTransactions = await prisma.transaction.updateMany({
+      where: {
+        id: { in: ids },
+      },
+      data: { isDeleted: true },
+    });
+
+    return deletedTransactions;
+  } catch (error) {
+    console.error("Error deleting transactions:", error);
+    throw error;
+  }
+};
