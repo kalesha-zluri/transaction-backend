@@ -1,157 +1,145 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import { editTransaction } from "../../src/controllers/editTransaction.controller";
-import {
-  updateTransaction,
-  checkDuplicateTransaction,
-  getTransactionById,
-} from "../../src/services/databaseOperations.service";
-import { validateSchema, validateDataTypes } from "../../src/utils/validations";
-import { CSVRecord } from "../../src/types/csv.types";
+import * as validateSchema from "../../src/utils/validateSchema";
+import * as dbOperations from "../../src/services/databaseOperations.service";
 
+jest.mock("../../src/utils/validateSchema");
 jest.mock("../../src/services/databaseOperations.service");
-jest.mock("../../src/utils/validations");
 
-describe("editTransaction controller", () => {
-  let mockReq: Partial<Request>;
-  let mockRes: Partial<Response>;
-  let mockNext: NextFunction;
+describe("Edit Transaction Controller", () => {
+  let mockRequest: Partial<Request>;
+  let mockResponse: Partial<Response>;
 
   beforeEach(() => {
-    mockReq = { params: {}, body: {} };
-    mockRes = {
+    mockRequest = {
+      params: { id: "1" },
+      body: {
+        date: "01-01-2024",
+        description: "Test Transaction",
+        amount: "100",
+        currency: "USD",
+      },
+    };
+    mockResponse = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn(),
     };
-    mockNext = jest.fn();
-    jest.clearAllMocks();
   });
 
-  it("returns 400 if id is missing", async () => {
-      await editTransaction(mockReq as Request, mockRes as Response, mockNext);
-  
-      expect(mockRes.status).toHaveBeenCalledWith(400);
-      expect(mockRes.json).toHaveBeenCalledWith({
-        error: "Invalid or missing transaction ID",
-      });
+  it("should successfully update a valid transaction", async () => {
+    const mockUpdatedTransaction = {
+      id: 1,
+      ...mockRequest.body,
+      updatedAt: new Date(),
+    };
+
+    (validateSchema.validate_transaction_schema as jest.Mock).mockReturnValue({
+      valid: true,
     });
-  
-    it("returns 400 if id is not a number", async () => {
-      mockReq.params = { id: "abc" };
-  
-      await editTransaction(mockReq as Request, mockRes as Response, mockNext);
-  
-      expect(mockRes.status).toHaveBeenCalledWith(400);
-      expect(mockRes.json).toHaveBeenCalledWith({
-        error: "Invalid or missing transaction ID",
-      });
+    (dbOperations.getTransactionById as jest.Mock).mockResolvedValue({
+      id: 1,
+      isDeleted: false,
     });
+    (dbOperations.checkDuplicateTransaction as jest.Mock).mockResolvedValue(
+      false
+    );
+    (dbOperations.updateTransaction as jest.Mock).mockResolvedValue(
+      mockUpdatedTransaction
+    );
 
-  it("returns 404 if transaction is not found", async () => {
-    mockReq.params = { id: "123" };
-    (getTransactionById as jest.Mock).mockResolvedValue(null);
+    await editTransaction(mockRequest as Request, mockResponse as Response);
 
-    await editTransaction(mockReq as Request, mockRes as Response, mockNext);
+    expect(mockResponse.status).toHaveBeenCalledWith(200);
+    expect(mockResponse.json).toHaveBeenCalledWith({
+      message: "Transaction updated successfully",
+      data: mockUpdatedTransaction,
+    });
+  });
 
-    expect(mockRes.status).toHaveBeenCalledWith(404);
-    expect(mockRes.json).toHaveBeenCalledWith({
+  it("should return 400 for invalid transaction ID", async () => {
+    mockRequest.params = { id: "invalid" };
+
+    await editTransaction(mockRequest as Request, mockResponse as Response);
+
+    expect(mockResponse.status).toHaveBeenCalledWith(400);
+    expect(mockResponse.json).toHaveBeenCalledWith({
+      error: "Invalid or missing transaction ID",
+    });
+  });
+
+  it("should return 404 for non-existent transaction", async () => {
+    (dbOperations.getTransactionById as jest.Mock).mockResolvedValue(null);
+
+    await editTransaction(mockRequest as Request, mockResponse as Response);
+
+    expect(mockResponse.status).toHaveBeenCalledWith(404);
+    expect(mockResponse.json).toHaveBeenCalledWith({
       error: "Transaction not found",
     });
   });
 
-  it("returns 400 if transaction is already deleted", async () => {
-    mockReq.params = { id: "123" };
-    (getTransactionById as jest.Mock).mockResolvedValue({ isDeleted: true });
+  it("should return 400 for deleted transaction", async () => {
+    (dbOperations.getTransactionById as jest.Mock).mockResolvedValue({
+      id: 1,
+      isDeleted: true,
+    });
 
-    await editTransaction(mockReq as Request, mockRes as Response, mockNext);
+    await editTransaction(mockRequest as Request, mockResponse as Response);
 
-    expect(mockRes.status).toHaveBeenCalledWith(400);
-    expect(mockRes.json).toHaveBeenCalledWith({
+    expect(mockResponse.status).toHaveBeenCalledWith(400);
+    expect(mockResponse.json).toHaveBeenCalledWith({
       error: "Transaction already deleted",
     });
   });
 
-  it("returns 400 if schema validation fails", async () => {
-    mockReq.params = { id: "123" };
-    (getTransactionById as jest.Mock).mockResolvedValue({ isDeleted: false });
-    (validateSchema as jest.Mock).mockReturnValue(false);
+  it("should return 400 for invalid schema", async () => {
+    (dbOperations.getTransactionById as jest.Mock).mockResolvedValue({
+      id: 1,
+      isDeleted: false,
+    });
+    (validateSchema.validate_transaction_schema as jest.Mock).mockReturnValue({
+      valid: false,
+      errors: ["Invalid date format"],
+    });
 
-    await editTransaction(mockReq as Request, mockRes as Response, mockNext);
+    await editTransaction(mockRequest as Request, mockResponse as Response);
 
-    expect(mockRes.status).toHaveBeenCalledWith(400);
-    expect(mockRes.json).toHaveBeenCalledWith({
-      error: "Missing required fields: date, description, amount, currency",
+    expect(mockResponse.status).toHaveBeenCalledWith(400);
+    expect(mockResponse.json).toHaveBeenCalledWith({
+      error: "Invalid date format",
     });
   });
 
-  it("returns 400 if data type validation fails", async () => {
-    mockReq.params = { id: "123" };
-    (getTransactionById as jest.Mock).mockResolvedValue({ isDeleted: false });
-    (validateSchema as jest.Mock).mockReturnValue(true);
-    (validateDataTypes as jest.Mock).mockReturnValue(false);
-
-    await editTransaction(mockReq as Request, mockRes as Response, mockNext);
-
-    expect(mockRes.status).toHaveBeenCalledWith(400);
-    expect(mockRes.json).toHaveBeenCalledWith({
-      error:
-        "Invalid data types. Please check date format (DD-MM-YYYY), amount (numeric), and description",
+  it("should return 400 for duplicate transaction", async () => {
+    (dbOperations.getTransactionById as jest.Mock).mockResolvedValue({
+      id: 1,
+      isDeleted: false,
     });
-  });
+    (validateSchema.validate_transaction_schema as jest.Mock).mockReturnValue({
+      valid: true,
+    });
+    (dbOperations.checkDuplicateTransaction as jest.Mock).mockResolvedValue(
+      true
+    );
 
-  it("returns 400 if duplicate transaction is found", async () => {
-    mockReq.params = { id: "123" };
-    (getTransactionById as jest.Mock).mockResolvedValue({ isDeleted: false });
-    (validateSchema as jest.Mock).mockReturnValue(true);
-    (validateDataTypes as jest.Mock).mockReturnValue(true);
-    (checkDuplicateTransaction as jest.Mock).mockResolvedValue(true);
+    await editTransaction(mockRequest as Request, mockResponse as Response);
 
-    await editTransaction(mockReq as Request, mockRes as Response, mockNext);
-
-    expect(mockRes.status).toHaveBeenCalledWith(400);
-    expect(mockRes.json).toHaveBeenCalledWith({
+    expect(mockResponse.status).toHaveBeenCalledWith(400);
+    expect(mockResponse.json).toHaveBeenCalledWith({
       error: "Duplicate transaction found",
     });
   });
 
-  it("updates transaction and returns 200 if no issues", async () => {
-    mockReq.params = { id: "123" };
-    mockReq.body = {
-      date: "2020-01-01",
-      description: "Updated",
-      amount: "100",
-      currency: "USD",
-    } as CSVRecord;
-    (getTransactionById as jest.Mock).mockResolvedValue({ isDeleted: false });
-    (validateSchema as jest.Mock).mockReturnValue(true);
-    (validateDataTypes as jest.Mock).mockReturnValue(true);
-    (checkDuplicateTransaction as jest.Mock).mockResolvedValue(false);
-    (updateTransaction as jest.Mock).mockResolvedValue({
-      id: 123,
-      date: "2020-01-01",
-      description: "Updated",
+  it("should return 500 for server error", async () => {
+    (dbOperations.getTransactionById as jest.Mock).mockRejectedValue(
+      new Error("Database error")
+    );
+
+    await editTransaction(mockRequest as Request, mockResponse as Response);
+
+    expect(mockResponse.status).toHaveBeenCalledWith(500);
+    expect(mockResponse.json).toHaveBeenCalledWith({
+      error: "Internal server error: Failed to update transaction",
     });
-
-    await editTransaction(mockReq as Request, mockRes as Response, mockNext);
-
-    expect(updateTransaction).toHaveBeenCalledWith(123, mockReq.body);
-    expect(mockRes.status).toHaveBeenCalledWith(200);
-    expect(mockRes.json).toHaveBeenCalledWith({
-      message: "Transaction updated successfully",
-      data: {
-        id: 123,
-        date: "2020-01-01",
-        description: "Updated",
-      },
-    });
-  });
-
-  it("calls next if an error is thrown", async () => {
-    mockReq.params = { id: "123" };
-    const error = new Error("Unexpected error");
-    (getTransactionById as jest.Mock).mockRejectedValue(error);
-
-    await editTransaction(mockReq as Request, mockRes as Response, mockNext);
-
-    expect(mockNext).toHaveBeenCalledWith(error);
   });
 });
