@@ -13,7 +13,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Transaction {
+model transaction {
   id          Int      @id @default(autoincrement())
   date        String
   dateTime    DateTime
